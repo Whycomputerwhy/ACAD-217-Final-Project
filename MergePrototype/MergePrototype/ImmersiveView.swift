@@ -42,7 +42,6 @@ private struct WorkspacePalette: View {
             }.buttonStyle(.bordered)
             Divider()
             Text("EDIT").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Toggle("Interior lining", isOn: $model.inspectionEnabled)
             HStack { Button("Undo") { model.undoToken += 1 }; Button("Clear") { model.clearToken += 1 } }.buttonStyle(.bordered)
         }
         .padding(16).frame(width: 290).glassBackgroundEffect()

@@ -4,9 +4,9 @@ Last updated: 2026-11-16
 
 ## Purpose
 
-This is a visionOS spatial-composition prototype. A person assembles preset USDZ forms on a square workbench. The intended future experience is a real-time visual Boolean union with a hollow, single-material interior and a separately generated export mesh.
+This is a visionOS spatial-composition prototype. A person assembles preset USDZ forms on a square workbench. A narrow live melt seam appears at close joins without covering the source models. The intended future experience is a true real-time visual Boolean union with a hollow, single-material interior and a separately generated export mesh.
 
-No Boolean rendering is currently shown: the source models stay completely visible while the interaction and layout are tested.
+The live melt seam is a visual interaction effect, not a true Boolean operation: source models stay visible and no merged mesh is generated.
 
 ## Current interaction
 
@@ -14,9 +14,8 @@ No Boolean rendering is currently shown: the source models stay completely visib
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, the square workbench follows that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
 3. The person can pinch-drag source objects on the workbench.
 4. Three small 3D palette tiles sit on the right side of the workbench. Dragging one creates a new full-size instance at the dragged position.
-5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any geometry that would obscure the models.
-6. The right-side panel also offers button equivalents for adding presets, plus Interior lining, Undo, and Clear.
-7. **Interior lining** is currently a planned-state control only; it does not cut open or generate an actual hollow object.
+5. When any pair of source-object origins comes within 0.34 m, a narrow translucent, rounded melt seam is generated between them. Its width changes continuously with distance and preserves visibility of the source models.
+6. The right-side panel also offers button equivalents for adding presets, plus Undo and Clear.
 
 ## Project map
 
@@ -54,7 +53,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 | 3D object palette / drag-out behavior | `FusionController.swift` | `makePaletteTile`, `drag`, `addAsset`, and `paletteKind`. Do not add a tile without putting its USDZ in `Resources`. |
 | Right-side UI controls | `ImmersiveView.swift` | `WorkspacePalette` is a `RealityView` attachment, positioned at `x = 0.78` relative to the workbench. |
 | Buttons / state events | `AppModel.swift` and `ContentView.swift` | The model uses incrementing tokens so RealityKit can consume UI commands reliably. |
-| Fusion state | `FusionController.swift` | `refreshPreview` decides which objects count as close enough to merge. It intentionally creates no overlay geometry. |
+| Fusion visual | `FusionController.swift` | `refreshPreview` decides which objects connect; `makeMeltBridge` makes the narrow live seam. |
 
 ## Important technical constraints
 
@@ -75,7 +74,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 ## Recommended next work
 
 1. **Validate on device.** Tune workbench dimensions, right-panel scale/position, initial source scale, and the 0.34 m connection threshold using real hand interaction.
-2. **Add the future preview carefully.** Implement a Metal SDF renderer only when it can preserve source-model visibility and materials; use the existing source transforms as inputs.
+2. **Replace the seam with true visual union.** Implement a Metal SDF renderer only when it can preserve source-model visibility and materials; use the existing source transforms as inputs.
 3. **Separate preview from export.** On an explicit Export action, generate a watertight shell with a fixed thickness; retain source materials on the exterior and one shared material for interior faces.
 4. **Make edit controls honest.** Add object selection, delete selected, transform/rotation controls, and a real action stack before calling Undo a production feature.
 
