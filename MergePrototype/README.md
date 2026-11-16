@@ -60,6 +60,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 - The input assets are controlled application resources, not user imports. This is intentional and should remain true for the prototype.
 - A source object is loaded asynchronously from the app bundle, normalized to a target size, given collision shapes, and made an `InputTargetComponent`.
 - Drag handling walks up an entity's parent chain. Do not simplify this to inspect only the event entity: USDZ collision targets may be a child entity rather than the named root.
+- Palette spawning is asynchronous. `pendingPaletteSpawns` prevents drag-update events from creating a copy every frame while the first USDZ instance loads.
 - Plane sensing requires `NSWorldSensingUsageDescription` and only behaves fully on a Vision Pro. The simulator uses the fallback workbench position.
 - The project compiles with the visionOS SDK, but real-world placement and spatial dragging need device validation.
 - `TossGameController.swift` is leftover, excluded from the target, and unrelated to MergePrototype. Do not reactivate it.
