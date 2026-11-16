@@ -21,6 +21,7 @@ final class AppModel {
     var addCrateToken = 0
     var undoToken = 0
     var clearToken = 0
+    var makeWhiteToken = 0
     var inspectionEnabled = false
     var fusionCount = 0
 }

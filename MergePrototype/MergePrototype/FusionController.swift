@@ -22,6 +22,7 @@ final class FusionController {
     private var lastCrateToken = 0
     private var lastUndoToken = 0
     private var lastClearToken = 0
+    private var lastMakeWhiteToken = 0
     private var paletteAttached = false
     private var configured = false
     private var appModel: AppModel?
@@ -55,6 +56,7 @@ final class FusionController {
         if model.resetToken != lastResetToken { reset(model: model) }
         if model.clearToken != lastClearToken { lastClearToken = model.clearToken; clearSources(model: model) }
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
+        if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -108,6 +110,7 @@ final class FusionController {
         lastCrateToken = model.addCrateToken
         lastUndoToken = model.undoToken
         lastClearToken = model.clearToken
+        lastMakeWhiteToken = model.makeWhiteToken
         addAsset("apple", at: [-0.24, 0.16, -0.1])
         addAsset("elephant", at: [0.20, 0.16, -0.12])
         addAsset("crate", at: [0.00, 0.15, 0.14])
@@ -125,6 +128,19 @@ final class FusionController {
     private func removeLastSource(model: AppModel) {
         sources.popLast()?.removeFromParent()
         refreshPreview(model: model)
+    }
+
+    private func applyWhiteMaterial() {
+        let white = SimpleMaterial(color: .white, isMetallic: false)
+        sources.forEach { replaceMaterials(in: $0, with: white) }
+    }
+
+    private func replaceMaterials(in entity: Entity, with material: any RealityKit.Material) {
+        if var model = entity.components[ModelComponent.self] {
+            model.materials = Array(repeating: material, count: max(1, model.materials.count))
+            entity.components.set(model)
+        }
+        entity.children.forEach { replaceMaterials(in: $0, with: material) }
     }
 
     private func nextPosition() -> SIMD3<Float> {
@@ -175,7 +191,6 @@ final class FusionController {
     }
 
     private func refreshPreview(model: AppModel) {
-        previewRoot.children.forEach { $0.removeFromParent() }
         var connections = 0
         for first in sources.indices {
             for second in sources.indices where second > first {
@@ -184,38 +199,10 @@ final class FusionController {
                 let distance = simd_distance(a, b)
                 guard distance < 0.34 else { continue }
                 connections += 1
-                previewRoot.addChild(makeMeltBridge(between: a, and: b, distance: distance))
             }
         }
         model.fusionCount = connections
         model.phase = model.inspectionEnabled ? .inspecting : (connections > 0 ? .fusing : .isolated)
-    }
-
-    /// A deliberately narrow, metaball-inspired seam. It communicates live fusion while preserving the source forms.
-    private func makeMeltBridge(between a: SIMD3<Float>, and b: SIMD3<Float>, distance: Float) -> Entity {
-        let delta = b - a
-        let axis = distance > 0.001 ? simd_normalize(delta) : SIMD3<Float>(0, 1, 0)
-        let fusion = 1 - min(distance / 0.34, 1)
-        let ripple = sin(Float(Date().timeIntervalSinceReferenceDate) * 7 + distance * 19) * 0.006
-        let radius = max(0.026, 0.032 + fusion * 0.052 + ripple)
-        let material = SimpleMaterial(color: .init(red: 0.16, green: 0.84, blue: 0.67, alpha: 1), isMetallic: true)
-        let bridge = Entity()
-        bridge.name = "LiveMeltBridge"
-
-        let core = ModelEntity(mesh: .generateCylinder(height: max(0.045, distance), radius: radius), materials: [material])
-        core.position = (a + b) * 0.5
-        core.orientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: axis)
-        core.components.set(OpacityComponent(opacity: 0.72))
-        bridge.addChild(core)
-
-        // Rounded end bulbs make the seam read as soft material rather than a rigid connector.
-        for point in [a + delta * 0.32, a + delta * 0.68] {
-            let bulb = ModelEntity(mesh: .generateSphere(radius: radius * 1.28), materials: [material])
-            bulb.position = point
-            bulb.components.set(OpacityComponent(opacity: 0.66))
-            bridge.addChild(bulb)
-        }
-        return bridge
     }
 
     private func startPlaneDetection() {
