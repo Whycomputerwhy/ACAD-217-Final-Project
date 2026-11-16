@@ -1,0 +1,160 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* MergePrototypeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* MergePrototypeApp.swift */; };
+		100000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* AppModel.swift */; };
+		100000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* ContentView.swift */; };
+		100000000000000000000004 /* ImmersiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* ImmersiveView.swift */; };
+		100000000000000000000007 /* FusionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* FusionController.swift */; };
+		100000000000000000000008 /* apple.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* apple.usdz */; };
+		100000000000000000000009 /* elephant.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* elephant.usdz */; };
+		100000000000000000000010 /* crate.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* crate.usdz */; };
+		100000000000000000000006 /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 900000000000000000000001 /* RealityKitContent */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		200000000000000000000001 /* MergePrototypeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergePrototypeApp.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		200000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		200000000000000000000004 /* ImmersiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersiveView.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* TossGameController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TossGameController.swift; sourceTree = "<group>"; };
+		200000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		200000000000000000000007 /* MergePrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MergePrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		200000000000000000000008 /* FusionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FusionController.swift; sourceTree = "<group>"; };
+		200000000000000000000009 /* apple.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/apple.usdz; sourceTree = "<group>"; };
+		200000000000000000000010 /* elephant.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/elephant.usdz; sourceTree = "<group>"; };
+		200000000000000000000011 /* crate.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/crate.usdz; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		300000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (100000000000000000000006 /* RealityKitContent in Frameworks */,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		400000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				400000000000000000000002 /* MergePrototype */,
+				400000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		400000000000000000000002 /* MergePrototype */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000001 /* MergePrototypeApp.swift */,
+				200000000000000000000002 /* AppModel.swift */,
+				200000000000000000000003 /* ContentView.swift */,
+				200000000000000000000004 /* ImmersiveView.swift */,
+				200000000000000000000008 /* FusionController.swift */,
+				200000000000000000000009 /* apple.usdz */,
+				200000000000000000000010 /* elephant.usdz */,
+				200000000000000000000011 /* crate.usdz */,
+				200000000000000000000006 /* Info.plist */,
+			);
+			path = MergePrototype;
+			sourceTree = "<group>";
+		};
+		400000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (200000000000000000000007 /* MergePrototype.app */,);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		500000000000000000000001 /* MergePrototype */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000002 /* Build configuration list for PBXNativeTarget "MergePrototype" */;
+			buildPhases = (
+				300000000000000000000002 /* Sources */,
+				300000000000000000000001 /* Frameworks */,
+				300000000000000000000003 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = MergePrototype;
+			packageProductDependencies = (900000000000000000000001 /* RealityKitContent */,);
+			productName = MergePrototype;
+			productReference = 200000000000000000000007 /* MergePrototype.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		600000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {500000000000000000000001 = {CreatedOnToolsVersion = 26.6;};};
+			};
+			buildConfigurationList = 800000000000000000000001 /* Build configuration list for PBXProject "MergePrototype" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = 400000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (A000000000000000000000001 /* XCLocalSwiftPackageReference "Packages/RealityKitContent" */,);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 400000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (500000000000000000000001 /* MergePrototype */,);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		300000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000008 /* apple.usdz in Resources */, 100000000000000000000009 /* elephant.usdz in Resources */, 100000000000000000000010 /* crate.usdz in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		300000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001,
+				100000000000000000000002,
+				100000000000000000000003,
+				100000000000000000000004,
+				100000000000000000000007,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		700000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_OPTIMIZATION_LEVEL = 0; ONLY_ACTIVE_ARCH = YES; SDKROOT = xros; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		700000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; SDKROOT = xros; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
+		700000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = MergePrototype/Info.plist; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.stephenlizhen.MergePrototype; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 7; XROS_DEPLOYMENT_TARGET = 2.0; }; name = Debug; };
+		700000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = MergePrototype/Info.plist; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.stephenlizhen.MergePrototype; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "xros xrsimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 7; XROS_DEPLOYMENT_TARGET = 2.0; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		800000000000000000000001 /* Build configuration list for PBXProject "MergePrototype" */ = {isa = XCConfigurationList; buildConfigurations = (700000000000000000000001, 700000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		800000000000000000000002 /* Build configuration list for PBXNativeTarget "MergePrototype" */ = {isa = XCConfigurationList; buildConfigurations = (700000000000000000000003, 700000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A000000000000000000000001 /* XCLocalSwiftPackageReference "Packages/RealityKitContent" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/RealityKitContent; };
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		900000000000000000000001 /* RealityKitContent */ = {isa = XCSwiftPackageProductDependency; package = A000000000000000000000001 /* XCLocalSwiftPackageReference "Packages/RealityKitContent" */; productName = RealityKitContent; };
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 600000000000000000000001 /* Project object */;
+}
+

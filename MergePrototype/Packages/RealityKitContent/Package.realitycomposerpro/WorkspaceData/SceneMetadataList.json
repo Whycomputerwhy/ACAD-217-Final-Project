@@ -1,0 +1,14 @@
+{
+  "A7D53CF8-702A-4DF6-893D-2D3B8B9BE101" : {
+    "cameraTransform" : [
+      1, 0, 0, 0,
+      0, 0.8660254, -0.5, 0,
+      0, 0.5, 0.8660254, 0,
+      0, 1.4, 1.2, 1
+    ],
+    "objectMetadataList" : [
+      [["A7D53CF8-702A-4DF6-893D-2D3B8B9BE101", "Root"], {"isExpanded" : true, "isLocked" : false}]
+    ]
+  }
+}
+

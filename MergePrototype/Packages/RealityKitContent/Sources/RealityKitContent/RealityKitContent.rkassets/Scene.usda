@@ -1,0 +1,36 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Cube "Ground"
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.22, 0.22, 0.24)]
+        float3 xformOp:scale = (3.6, 0.06, 3.6)
+        float3 xformOp:translate = (0, -0.03, -1)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+
+    def Cube "Character"
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.28, 0.66, 0.98)]
+        float3 xformOp:scale = (0.56, 0.9, 0.44)
+        float3 xformOp:translate = (0, 0.45, -1.65)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+
+    def Sphere "Ball"
+    {
+        double radius = 0.08
+        color3f[] primvars:displayColor = [(1, 0.34, 0.12)]
+        float3 xformOp:translate = (0, 1.05, -0.55)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+
