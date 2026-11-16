@@ -8,7 +8,6 @@
 /* Begin PBXBuildFile section */
 		100000000000000000000001 /* MergePrototypeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* MergePrototypeApp.swift */; };
 		100000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* AppModel.swift */; };
-		100000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* ContentView.swift */; };
 		100000000000000000000004 /* ImmersiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* ImmersiveView.swift */; };
 		100000000000000000000007 /* FusionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* FusionController.swift */; };
 		100000000000000000000008 /* apple.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* apple.usdz */; };
@@ -20,7 +19,6 @@
 /* Begin PBXFileReference section */
 		200000000000000000000001 /* MergePrototypeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergePrototypeApp.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		200000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		200000000000000000000004 /* ImmersiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersiveView.swift; sourceTree = "<group>"; };
 		200000000000000000000005 /* TossGameController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TossGameController.swift; sourceTree = "<group>"; };
 		200000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -54,7 +52,6 @@
 			children = (
 				200000000000000000000001 /* MergePrototypeApp.swift */,
 				200000000000000000000002 /* AppModel.swift */,
-				200000000000000000000003 /* ContentView.swift */,
 				200000000000000000000004 /* ImmersiveView.swift */,
 				200000000000000000000008 /* FusionController.swift */,
 				200000000000000000000009 /* apple.usdz */,

@@ -8,15 +8,12 @@ struct ImmersiveView: View {
     var body: some View {
         RealityView { content, attachments in
             fusion.configure(content: content, model: model)
-            fusion.attachObjectPalette(attachments.entity(for: "objectPalette"))
             fusion.attachEditPalette(attachments.entity(for: "editPalette"))
         } update: { _, attachments in
             fusion.consumeCommands(model: model)
-            fusion.attachObjectPalette(attachments.entity(for: "objectPalette"))
             fusion.attachEditPalette(attachments.entity(for: "editPalette"))
         }
         attachments: {
-            Attachment(id: "objectPalette") { ObjectPalette() }
             Attachment(id: "editPalette") { EditPalette(model: model) }
         }
         .gesture(
@@ -28,17 +25,6 @@ struct ImmersiveView: View {
         .onDisappear {
             model.isImmersive = false
         }
-    }
-}
-
-private struct ObjectPalette: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text("Drag a form into the workspace")
-                .font(.caption2).foregroundStyle(.secondary)
-        }
-        .padding(14).frame(width: 210).glassBackgroundEffect()
     }
 }
 

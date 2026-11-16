@@ -10,8 +10,8 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 
 ## Current interaction
 
-1. The window opens the mixed immersive space with **Enter Studio**.
-2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, the square workbench follows that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
+1. The app launches directly into the mixed immersive space; there is no `ContentView` window.
+2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
 3. The person can pinch-drag source objects on the workbench.
 4. Three small 3D palette tiles sit on the left side of the workbench. Dragging one creates a new full-size instance at the dragged position.
 5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
@@ -24,7 +24,7 @@ MergePrototype/
 ├── MergePrototype.xcodeproj/        Xcode project; scheme is MergePrototype
 ├── MergePrototype/
 │   ├── MergePrototypeApp.swift       App + ImmersiveSpace declaration
-│   ├── ContentView.swift             Launch window; enter/reset controls
+│   ├── ContentView.swift             Legacy source file; excluded from the target
 │   ├── ImmersiveView.swift           RealityView, drag gesture, right-side SwiftUI attachment
 │   ├── AppModel.swift                Observable UI state and command tokens
 │   ├── FusionController.swift        Main runtime: workbench, plane tracking, palette, object spawning, preview
@@ -49,7 +49,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 
 | Need to change | File | Notes |
 | --- | --- | --- |
-| Workbench placement or plane selection | `FusionController.swift` | `startPlaneDetection()` accepts `.table` and `.floor`; `workbench` is the anchor for all spatial content. |
+| Workbench placement or plane selection | `FusionController.swift` | `startPlaneDetection()` accepts `.table` and `.floor`; `workbench` is the anchor for all spatial content. `makeWorkbench()` makes the 0.5 m white-grid tabletop overlay. |
 | 3D object palette / drag-out behavior | `FusionController.swift` | `makePaletteTile`, `drag`, `addAsset`, and `paletteKind`. Do not add a tile without putting its USDZ in `Resources`. |
 | Spatial palettes | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.78`; `EditPalette` is attached at `x = 0.78` relative to the workbench. |
 | Buttons / state events | `AppModel.swift` and `ContentView.swift` | The model uses incrementing tokens so RealityKit can consume UI commands reliably. |
@@ -83,7 +83,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 1. Open `MergePrototype.xcodeproj` in Xcode.
 2. Select an Apple Vision Pro target or simulator.
 3. Set a signing team if Xcode requires one.
-4. Run, open the studio, and grant World Sensing permission on device.
+4. Run; the immersive workspace opens directly. Grant World Sensing permission on device.
 
 The project was compiled successfully with the visionOS SDK after the current layout/plane-detection update.
 

@@ -90,14 +90,27 @@ final class FusionController {
     }
 
     private func makeWorkbench() {
-        let base = ModelEntity(mesh: .generateBox(size: [1.18, 0.026, 1.18], cornerRadius: 0.035), materials: [SimpleMaterial(color: .init(white: 0.12, alpha: 0.96), isMetallic: true)])
-        base.name = "SquareWorkbenchSurface"
-        base.position = [0, 0.013, 0]
-        workbench.addChild(base)
-        let edge = ModelEntity(mesh: .generateBox(size: [1.22, 0.012, 1.22], cornerRadius: 0.045), materials: [SimpleMaterial(color: .init(red: 0.12, green: 0.95, blue: 0.72, alpha: 1), isMetallic: true)])
-        edge.position = [0, -0.008, 0]
-        edge.components.set(OpacityComponent(opacity: 0.45))
-        workbench.addChild(edge)
+        let surface = ModelEntity(mesh: .generatePlane(width: 0.5, depth: 0.5), materials: [SimpleMaterial(color: .white, isMetallic: false)])
+        surface.name = "WhiteGridSurface"
+        surface.position.y = 0.0004 // Keep the overlay flush with the detected tabletop.
+        surface.components.set(OpacityComponent(opacity: 0.08))
+        workbench.addChild(surface)
+
+        let gridMaterial = SimpleMaterial(color: .white, isMetallic: false)
+        let divisions = 10
+        let step: Float = 0.5 / Float(divisions)
+        for index in 0...divisions {
+            let offset = -0.25 + Float(index) * step
+            let vertical = ModelEntity(mesh: .generateBox(size: [0.0012, 0.0005, 0.5]), materials: [gridMaterial])
+            vertical.position = [offset, 0.00075, 0]
+            vertical.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
+            workbench.addChild(vertical)
+
+            let horizontal = ModelEntity(mesh: .generateBox(size: [0.5, 0.0005, 0.0012]), materials: [gridMaterial])
+            horizontal.position = [0, 0.00075, offset]
+            horizontal.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
+            workbench.addChild(horizontal)
+        }
         ["apple", "elephant", "crate"].enumerated().forEach { index, kind in Task { await makePaletteTile(kind: kind, index: index) } }
     }
 
