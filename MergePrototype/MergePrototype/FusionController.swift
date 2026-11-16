@@ -175,7 +175,6 @@ final class FusionController {
     }
 
     private func refreshPreview(model: AppModel) {
-        previewRoot.children.forEach { $0.removeFromParent() }
         var connections = 0
         for first in sources.indices {
             for second in sources.indices where second > first {
@@ -184,19 +183,10 @@ final class FusionController {
                 let distance = simd_distance(a, b)
                 guard distance < 0.34 else { continue }
                 connections += 1
-                previewRoot.addChild(makeFusionField(between: a, and: b, distance: distance, interior: model.inspectionEnabled))
             }
         }
         model.fusionCount = connections
         model.phase = model.inspectionEnabled ? .inspecting : (connections > 0 ? .fusing : .isolated)
-    }
-
-    private func makeFusionField(between a: SIMD3<Float>, and b: SIMD3<Float>, distance: Float, interior: Bool) -> Entity {
-        let color: UIColor = interior ? .init(red: 0.72, green: 0.35, blue: 0.95, alpha: 1) : .init(red: 0.12, green: 0.95, blue: 0.72, alpha: 1)
-        let field = ModelEntity(mesh: .generateSphere(radius: max(0.14, 0.26 - distance * 0.18)), materials: [SimpleMaterial(color: color, isMetallic: false)])
-        field.position = (a + b) * 0.5
-        field.components.set(OpacityComponent(opacity: interior ? 0.52 : 0.28))
-        return field
     }
 
     private func startPlaneDetection() {
