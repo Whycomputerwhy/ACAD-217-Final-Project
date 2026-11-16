@@ -5,6 +5,7 @@ import SwiftUI
 /// Owns the spatial workbench, plane placement, palette tiles, and fast visual-union preview.
 @MainActor
 final class FusionController {
+    private let workSurfaceHeight: Float = 0.001
     private let root = Entity()
     private let workbench = Entity()
     private let previewRoot = Entity()
@@ -47,7 +48,7 @@ final class FusionController {
     func attachObjectPalette(_ attachment: Entity?) {
         guard let attachment, !objectPaletteAttached else { return }
         objectPaletteAttached = true
-        attachment.position = [-0.78, 0.42, 0]
+        attachment.position = [-0.40, 0.20, 0]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
     }
@@ -55,7 +56,7 @@ final class FusionController {
     func attachEditPalette(_ attachment: Entity?) {
         guard let attachment, !editPaletteAttached else { return }
         editPaletteAttached = true
-        attachment.position = [0.78, 0.42, 0]
+        attachment.position = [0.42, 0.20, 0]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
     }
@@ -76,10 +77,10 @@ final class FusionController {
         let position = value.convert(value.location3D, from: .local, to: workbench)
         if let kind = paletteKind(for: value.entity) {
             palettePositions[kind] = position
-            if let source = paletteSpawned[kind] { source.position = position }
+            if let source = paletteSpawned[kind] { source.position = snappedPosition(for: source, requested: position) }
             else { addAsset(kind, at: position, paletteKind: kind) }
         } else if let source = sourceRoot(for: value.entity) {
-            source.position = position
+            source.position = snappedPosition(for: source, requested: position)
         }
         if let appModel { refreshPreview(model: appModel) }
     }
@@ -117,7 +118,7 @@ final class FusionController {
     private func makePaletteTile(kind: String, index: Int) async {
         guard let tile = await loadAsset(kind, desiredSize: 0.095) else { return }
         tile.name = "PaletteTile-\(kind)"
-        tile.position = [-0.77, 0.13, 0.22 - Float(index) * 0.18]
+        tile.position = [-0.38, 0.08, 0.17 - Float(index) * 0.15]
         tile.components.set(InputTargetComponent())
         tile.components.set(HoverEffectComponent())
         tile.generateCollisionShapes(recursive: true)
@@ -133,9 +134,6 @@ final class FusionController {
         lastUndoToken = model.undoToken
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
-        addAsset("apple", at: [-0.24, 0.16, -0.1])
-        addAsset("elephant", at: [0.20, 0.16, -0.12])
-        addAsset("crate", at: [0.00, 0.15, 0.14])
         model.phase = .ready
     }
 
@@ -166,7 +164,7 @@ final class FusionController {
     }
 
     private func nextPosition() -> SIMD3<Float> {
-        SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.16, -0.12 + Float(sources.count % 2) * 0.18)
+        SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
     private func addAsset(_ kind: String, at position: SIMD3<Float>, paletteKind: String? = nil) {
@@ -178,6 +176,7 @@ final class FusionController {
             loaded.components.set(HoverEffectComponent())
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
+            loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
             if let paletteKind { paletteSpawned[paletteKind] = loaded }
             if let appModel { refreshPreview(model: appModel) }
@@ -190,6 +189,15 @@ final class FusionController {
         let extent = max(bounds.extents.x, max(bounds.extents.y, bounds.extents.z))
         loaded.scale = SIMD3(repeating: max(0.001, desiredSize / extent))
         return loaded
+    }
+
+    /// Align the visual bottom of an arbitrary USDZ asset to the near-zero-thickness grid plane.
+    private func snappedPosition(for entity: Entity, requested: SIMD3<Float>) -> SIMD3<Float> {
+        let bounds = entity.visualBounds(relativeTo: workbench)
+        let bottomOffset = bounds.min.y - entity.position.y
+        var snapped = requested
+        snapped.y = workSurfaceHeight - bottomOffset
+        return snapped
     }
 
     private func paletteKind(for entity: Entity) -> String? {

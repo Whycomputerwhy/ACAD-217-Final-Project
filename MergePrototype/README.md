@@ -12,8 +12,8 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 
 1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
-3. The person can pinch-drag source objects on the workbench.
-4. Three small 3D palette tiles sit on the left side of the workbench. Dragging one creates a new full-size instance at the dragged position.
+3. The workbench starts empty. The person can pinch-drag source objects on the workbench; each object's visual bottom snaps onto the grid plane.
+4. Three small 3D palette tiles sit on the left side of the workbench. Dragging one creates a new full-size instance at the dragged position, with its bottom snapped to the tabletop.
 5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
 6. The right-side panel contains only editing controls: **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.
 
@@ -51,7 +51,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 | --- | --- | --- |
 | Workbench placement or plane selection | `FusionController.swift` | `startPlaneDetection()` accepts `.table` and `.floor`; `workbench` is the anchor for all spatial content. `makeWorkbench()` makes the 0.5 m white-grid tabletop overlay. |
 | 3D object palette / drag-out behavior | `FusionController.swift` | `makePaletteTile`, `drag`, `addAsset`, and `paletteKind`. Do not add a tile without putting its USDZ in `Resources`. |
-| Spatial palettes | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.78`; `EditPalette` is attached at `x = 0.78` relative to the workbench. |
+| Spatial palettes | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.40`; `EditPalette` is attached at `x = 0.42` relative to the workbench, close to the 0.5 m grid edges. |
 | Buttons / state events | `AppModel.swift` and `ContentView.swift` | The model uses incrementing tokens so RealityKit can consume UI commands reliably. |
 | Fusion state | `FusionController.swift` | `refreshPreview` decides which objects count as close enough to merge. It intentionally creates no overlay geometry. |
 
