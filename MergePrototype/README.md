@@ -10,7 +10,7 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 
 ## Current interaction
 
-1. The app launches directly into the mixed immersive space; there is no `ContentView` window.
+1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
 3. The person can pinch-drag source objects on the workbench.
 4. Three small 3D palette tiles sit on the left side of the workbench. Dragging one creates a new full-size instance at the dragged position.
@@ -24,7 +24,7 @@ MergePrototype/
 ├── MergePrototype.xcodeproj/        Xcode project; scheme is MergePrototype
 ├── MergePrototype/
 │   ├── MergePrototypeApp.swift       App + ImmersiveSpace declaration
-│   ├── ContentView.swift             Legacy source file; excluded from the target
+│   ├── ContentView.swift             Invisible 1 × 1 bootstrap scene; opens the immersive space then dismisses itself
 │   ├── ImmersiveView.swift           RealityView, drag gesture, right-side SwiftUI attachment
 │   ├── AppModel.swift                Observable UI state and command tokens
 │   ├── FusionController.swift        Main runtime: workbench, plane tracking, palette, object spawning, preview

@@ -1,26 +1,24 @@
 import SwiftUI
 
+/// A 1 × 1 point bootstrap scene required by visionOS. It opens the immersive workspace and removes itself.
 struct ContentView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
-    @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
+    @Environment(\.dismissWindow) private var dismissWindow
+    @State private var hasLaunched = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "cube.transparent")
-                .font(.system(size: 34)).foregroundStyle(.mint)
-            Text("MergePrototype").font(.title2.weight(.semibold))
-            Button(model.isImmersive ? "Leave Workspace" : "Enter Workspace") {
-                Task {
-                    if model.isImmersive { await dismissImmersiveSpace(); model.isImmersive = false }
-                    else { model.isImmersive = (await openImmersiveSpace(id: AppModel.playSpaceID) == .opened) }
+        Color.clear
+            .frame(width: 1, height: 1)
+            .task {
+                guard !hasLaunched else { return }
+                hasLaunched = true
+                let result = await openImmersiveSpace(id: AppModel.playSpaceID)
+                if result == .opened {
+                    model.isImmersive = true
+                    dismissWindow(id: "launch")
                 }
-            }.buttonStyle(.borderedProminent)
-            if model.isImmersive {
-                Text(model.phase.rawValue).font(.caption).foregroundStyle(.secondary)
             }
-        }
-        .padding(24).frame(width: 280)
     }
 }
 
