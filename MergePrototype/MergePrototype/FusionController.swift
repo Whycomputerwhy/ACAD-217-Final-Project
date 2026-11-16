@@ -23,7 +23,8 @@ final class FusionController {
     private var lastUndoToken = 0
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
-    private var paletteAttached = false
+    private var objectPaletteAttached = false
+    private var editPaletteAttached = false
     private var configured = false
     private var appModel: AppModel?
 
@@ -43,9 +44,17 @@ final class FusionController {
         startPlaneDetection()
     }
 
-    func attachPalette(_ attachment: Entity?) {
-        guard let attachment, !paletteAttached else { return }
-        paletteAttached = true
+    func attachObjectPalette(_ attachment: Entity?) {
+        guard let attachment, !objectPaletteAttached else { return }
+        objectPaletteAttached = true
+        attachment.position = [-0.78, 0.42, 0]
+        attachment.scale = SIMD3(repeating: 0.42)
+        paletteRoot.addChild(attachment)
+    }
+
+    func attachEditPalette(_ attachment: Entity?) {
+        guard let attachment, !editPaletteAttached else { return }
+        editPaletteAttached = true
         attachment.position = [0.78, 0.42, 0]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
@@ -95,7 +104,7 @@ final class FusionController {
     private func makePaletteTile(kind: String, index: Int) async {
         guard let tile = await loadAsset(kind, desiredSize: 0.095) else { return }
         tile.name = "PaletteTile-\(kind)"
-        tile.position = [0.77, 0.13, 0.22 - Float(index) * 0.18]
+        tile.position = [-0.77, 0.13, 0.22 - Float(index) * 0.18]
         tile.components.set(InputTargetComponent())
         tile.components.set(HoverEffectComponent())
         tile.generateCollisionShapes(recursive: true)
