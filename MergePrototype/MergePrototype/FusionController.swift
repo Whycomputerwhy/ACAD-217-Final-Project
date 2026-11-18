@@ -17,6 +17,8 @@ final class FusionController {
     private var paletteSpawned: [String: Entity] = [:]
     private var palettePositions: [String: SIMD3<Float>] = [:]
     private var pendingPaletteSpawns: Set<String> = []
+    private var paletteTiles: [String: Entity] = [:]
+    private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var lastResetToken = -1
     private var lastAppleToken = 0
@@ -85,13 +87,18 @@ final class FusionController {
                 addAsset(kind, at: position, paletteKind: kind)
             }
         } else if let source = sourceRoot(for: value.entity) {
-            source.position = snappedPosition(for: source, requested: position)
+            if activeDrag?.entity !== source {
+                // Preserve the exact grab point when the system's pinch gesture begins.
+                activeDrag = DragState(entity: source, offset: source.position - position)
+            }
+            source.position = snappedPosition(for: source, requested: position + (activeDrag?.offset ?? .zero))
         }
         if let appModel { refreshPreview(model: appModel) }
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
         if let kind = paletteKind(for: value.entity) { paletteSpawned[kind] = nil }
+        activeDrag = nil
         refreshPreview(model: model)
     }
 
@@ -128,6 +135,7 @@ final class FusionController {
         tile.components.set(HoverEffectComponent())
         tile.generateCollisionShapes(recursive: true)
         paletteRoot.addChild(tile)
+        paletteTiles[kind] = tile
     }
 
     private func reset(model: AppModel) {
@@ -147,6 +155,7 @@ final class FusionController {
         sources.removeAll()
         paletteSpawned.removeAll()
         pendingPaletteSpawns.removeAll()
+        activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
     }
@@ -264,5 +273,10 @@ final class FusionController {
                 }
             } catch { }
         }
+    }
+
+    private struct DragState {
+        let entity: Entity
+        let offset: SIMD3<Float>
     }
 }

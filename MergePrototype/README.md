@@ -12,8 +12,8 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 
 1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
-3. The workbench starts empty. The person can pinch-drag source objects on the workbench; each object's visual bottom snaps onto the grid plane.
-4. Three small 3D palette tiles sit on the left side of the workbench. Dragging one creates a new full-size instance at the dragged position, with its bottom snapped to the tabletop.
+3. The workbench starts empty. Object manipulation uses visionOS's default targeted pinch-and-drag gesture. The app preserves the object's initial offset from the system gesture location, so it does not jump to the hand when picked up; each object's visual bottom stays snapped onto the grid plane.
+4. Three small 3D palette tiles sit on the left side of the workbench. Pinching one creates a new full-size instance at the pinch position, with its bottom snapped to the tabletop.
 5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
 6. The right-side panel contains only editing controls: **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.
 
@@ -61,6 +61,7 @@ It originally had a circular base and a side menu. The runtime implementation no
 - A source object is loaded asynchronously from the app bundle, normalized to a target size, given collision shapes, and made an `InputTargetComponent`.
 - Drag handling walks up an entity's parent chain. Do not simplify this to inspect only the event entity: USDZ collision targets may be a child entity rather than the named root.
 - Palette spawning is asynchronous. `pendingPaletteSpawns` prevents drag-update events from creating a copy every frame while the first USDZ instance loads.
+- Object pickup uses visionOS's default targeted `DragGesture`; `DragState.offset` preserves the original grab point without hard-coding a pinch-distance threshold.
 - Plane sensing requires `NSWorldSensingUsageDescription` and only behaves fully on a Vision Pro. The simulator uses the fallback workbench position.
 - The project compiles with the visionOS SDK, but real-world placement and spatial dragging need device validation.
 - `TossGameController.swift` is leftover, excluded from the target, and unrelated to MergePrototype. Do not reactivate it.
