@@ -11,7 +11,6 @@ struct MergePrototypeApp: App {
                 .environment(model)
         }
         .windowStyle(.plain)
-        .defaultSize(width: 1, height: 1)
 
         ImmersiveSpace(id: AppModel.playSpaceID) {
             ImmersiveView()
