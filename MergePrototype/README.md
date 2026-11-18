@@ -12,7 +12,7 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 
 1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
-3. The workbench starts empty. Object manipulation uses visionOS's default targeted pinch-and-drag gesture. The app preserves the object's initial offset from the system gesture location, so it does not jump to the hand when picked up; each object's visual bottom stays snapped onto the grid plane.
+3. The workbench starts empty. Object manipulation uses visionOS's default targeted pinch-and-drag gesture. The app preserves the object's initial offset from the system gesture location, so it does not jump to the hand when picked up. The visual bottom snaps to the grid only within 5 cm; lifting it farther releases the snap for free-air placement.
 4. Three small 3D palette tiles sit on the left side of the workbench. Pinching one creates a new full-size instance at the pinch position, with its bottom snapped to the tabletop.
 5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
 6. The right-side panel contains only editing controls: **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.

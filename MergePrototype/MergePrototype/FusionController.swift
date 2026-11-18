@@ -6,6 +6,7 @@ import SwiftUI
 @MainActor
 final class FusionController {
     private let workSurfaceHeight: Float = 0.001
+    private let snapReleaseHeight: Float = 0.05
     private let root = Entity()
     private let workbench = Entity()
     private let previewRoot = Entity()
@@ -212,10 +213,12 @@ final class FusionController {
         return loaded
     }
 
-    /// Align the visual bottom of an arbitrary USDZ asset to the near-zero-thickness grid plane.
+    /// Snap only while the visual bottom is within 5 cm of the grid; otherwise allow a free-air move.
     private func snappedPosition(for entity: Entity, requested: SIMD3<Float>) -> SIMD3<Float> {
         let bounds = entity.visualBounds(relativeTo: workbench)
         let bottomOffset = bounds.min.y - entity.position.y
+        let requestedBottom = requested.y + bottomOffset
+        guard requestedBottom <= workSurfaceHeight + snapReleaseHeight else { return requested }
         var snapped = requested
         snapped.y = workSurfaceHeight - bottomOffset
         return snapped
