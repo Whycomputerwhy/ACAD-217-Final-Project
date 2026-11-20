@@ -12,6 +12,12 @@ final class FusionController {
     private let workbench = Entity()
     private let previewRoot = Entity()
     private let paletteRoot = Entity()
+    private let fullScaleRoot = Entity()
+    private let fullScaleComposition = Entity()
+    private let fullScaleGround = ModelEntity(
+        mesh: .generatePlane(width: 14, depth: 14),
+        materials: [SimpleMaterial(color: .init(white: 0.11, alpha: 1), isMetallic: false)]
+    )
     private let session = ARKitSession()
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
@@ -22,6 +28,9 @@ final class FusionController {
     private var paletteTiles: [String: Entity] = [:]
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
+    private var savedWorkbenchTransform: Transform?
+    private var isFullScale = false
+    private var fullScaleNeedsRebuild = false
     private var lastResetToken = -1
     private var lastAppleToken = 0
     private var lastElephantToken = 0
@@ -42,6 +51,11 @@ final class FusionController {
         workbench.name = "DetectedSquareWorkbench"
         workbench.position = [0, 0.72, -0.9] // Fallback until ARKit finds a surface.
         root.addChild(workbench)
+        root.addChild(fullScaleRoot)
+        fullScaleRoot.addChild(fullScaleComposition)
+        fullScaleGround.position.y = -0.002
+        fullScaleRoot.addChild(fullScaleGround)
+        fullScaleRoot.isEnabled = false
         workbench.addChild(previewRoot)
         workbench.addChild(paletteRoot)
         makeWorkbench()
@@ -75,7 +89,25 @@ final class FusionController {
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
+        if isFullScale, fullScaleNeedsRebuild { rebuildFullScaleComposition() }
         refreshPreview(model: model)
+    }
+
+    func setFullScale(_ enabled: Bool) {
+        guard enabled != isFullScale else { return }
+        isFullScale = enabled
+        if enabled {
+            savedWorkbenchTransform = workbench.transform
+            // Keep the editing system visible but well behind the life-size composition.
+            workbench.transform = Transform(scale: .one, rotation: .init(), translation: [0, 1.0, -6.0])
+            fullScaleRoot.isEnabled = true
+            fullScaleNeedsRebuild = true
+            rebuildFullScaleComposition()
+        } else {
+            fullScaleRoot.isEnabled = false
+            if let savedWorkbenchTransform { workbench.transform = savedWorkbenchTransform }
+            savedWorkbenchTransform = nil
+        }
     }
 
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
@@ -162,16 +194,19 @@ final class FusionController {
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
+        fullScaleNeedsRebuild = true
     }
 
     private func removeLastSource(model: AppModel) {
         sources.popLast()?.removeFromParent()
+        fullScaleNeedsRebuild = true
         refreshPreview(model: model)
     }
 
     private func applyWhiteMaterial() {
         let white = SimpleMaterial(color: .white, isMetallic: false)
         sources.forEach { replaceMaterials(in: $0, with: white) }
+        fullScaleNeedsRebuild = true
     }
 
     private func replaceMaterials(in entity: Entity, with material: any RealityKit.Material) {
@@ -200,6 +235,7 @@ final class FusionController {
             workbench.addChild(loaded)
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
+            fullScaleNeedsRebuild = true
             if let paletteKind {
                 pendingPaletteSpawns.remove(paletteKind)
                 paletteSpawned[paletteKind] = loaded
@@ -262,6 +298,27 @@ final class FusionController {
         model.phase = model.inspectionEnabled ? .inspecting : (connections > 0 ? .fusing : .isolated)
     }
 
+    private func rebuildFullScaleComposition() {
+        fullScaleComposition.children.forEach { $0.removeFromParent() }
+        fullScaleComposition.position = .zero
+        let fullScaleFactor: Float = 8
+        for source in sources {
+            let clone = source.clone(recursive: true)
+            clone.position = source.position(relativeTo: workbench) * fullScaleFactor
+            clone.orientation = source.orientation(relativeTo: workbench)
+            clone.scale = clone.scale * SIMD3(repeating: fullScaleFactor)
+            fullScaleComposition.addChild(clone)
+        }
+
+        fullScaleRoot.position = [0, 0, -3.2]
+
+        if !sources.isEmpty {
+            let bounds = fullScaleComposition.visualBounds(relativeTo: fullScaleRoot)
+            fullScaleComposition.position.y -= bounds.min.y
+        }
+        fullScaleNeedsRebuild = false
+    }
+
     private func startPlaneDetection() {
         guard PlaneDetectionProvider.isSupported else { return }
         Task {
@@ -272,7 +329,7 @@ final class FusionController {
                 for await update in planeProvider.anchorUpdates {
                     guard update.event != .removed,
                           update.anchor.classification == .table || update.anchor.classification == .floor else { continue }
-                    if activePlaneID == nil || activePlaneID == update.anchor.id {
+                    if !isFullScale && (activePlaneID == nil || activePlaneID == update.anchor.id) {
                         activePlaneID = update.anchor.id
                         workbench.transform = Transform(matrix: update.anchor.originFromAnchorTransform)
                     }

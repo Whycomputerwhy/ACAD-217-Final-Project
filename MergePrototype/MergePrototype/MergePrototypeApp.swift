@@ -11,12 +11,13 @@ struct MergePrototypeApp: App {
                 .environment(model)
         }
         .windowStyle(.plain)
+        .defaultSize(width: 1, height: 1)
 
         ImmersiveSpace(id: AppModel.playSpaceID) {
-            ImmersiveView()
+            ImmersiveView(immersionStyle: $immersionStyle)
                 .environment(model)
         }
-        .immersionStyle(selection: $immersionStyle, in: .mixed)
+        .immersionStyle(selection: $immersionStyle, in: .mixed, .full)
     }
 }
 

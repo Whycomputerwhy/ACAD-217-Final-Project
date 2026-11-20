@@ -22,6 +22,7 @@ final class AppModel {
     var undoToken = 0
     var clearToken = 0
     var makeWhiteToken = 0
+    var fullScaleView = false
     var inspectionEnabled = false
     var fusionCount = 0
 }

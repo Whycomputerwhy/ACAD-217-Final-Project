@@ -13,9 +13,10 @@ No Boolean rendering is currently shown: source models stay visible and no merge
 1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
 2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
 3. The workbench starts empty. Object manipulation uses visionOS's default targeted pinch-and-drag gesture. The app preserves the object's initial offset from the system gesture location, so it does not jump to the hand when picked up. The visual bottom snaps to the grid only within 5 cm; lifting it farther releases the snap for free-air placement.
-4. Three small 3D palette tiles sit on the left side of the workbench. Pinching one creates a new full-size instance at the pinch position, with its bottom snapped to the tabletop.
+4. Ten small 3D palette tiles sit on the left side of the workbench. The same assets are also displayed in a SwiftUI `Model3D` catalog. Pinching a physical palette tile creates a new full-size instance at the pinch position, with its bottom snapped to the tabletop.
 5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
-6. The right-side panel contains only editing controls: **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.
+6. The right-side panel contains **Full-scale view**, **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.
+7. Full-scale view switches the immersive space to full immersion and shows a cloned version of the current composition at 8× scale, grounded on a 14 m virtual floor about 3.2 m in front of the viewer. The editing workbench, menus, and mini models remain available 6 m away. It deliberately does not use a bundled HDRI; a custom environment asset can be added later without changing the composition logic.
 
 ## Project map
 
@@ -53,9 +54,10 @@ It originally had a circular base and a side menu. The runtime implementation no
 | --- | --- | --- |
 | Workbench placement or plane selection | `FusionController.swift` | `startPlaneDetection()` accepts `.table` and `.floor`; `workbench` is the anchor for all spatial content. `makeWorkbench()` makes the 0.5 m white-grid tabletop overlay. |
 | 3D object palette / drag-out behavior | `FusionController.swift` | `makePaletteTile`, `drag`, `addAsset`, and `paletteKind`. Do not add a tile without putting its USDZ in `Resources`. |
-| Spatial palettes | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.40`; `EditPalette` is attached at `x = 0.42` relative to the workbench, close to the 0.5 m grid edges. |
+| Spatial palettes and SwiftUI model catalog | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.40`; it renders the bundled USDZ files with `Model3D`. `EditPalette` is attached at `x = 0.42` and owns the Full-scale switch. |
 | Buttons / state events | `AppModel.swift` and `ContentView.swift` | The model uses incrementing tokens so RealityKit can consume UI commands reliably. |
 | Fusion state | `FusionController.swift` | `refreshPreview` decides which objects count as close enough to merge. It intentionally creates no overlay geometry. |
+| Full-scale presentation | `FusionController.swift`, `MergePrototypeApp.swift` | `setFullScale` makes 8× visual clones and places them on the virtual floor; the app switches between `.mixed` and `.full` immersion styles. |
 
 ## Important technical constraints
 

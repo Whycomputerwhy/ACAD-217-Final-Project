@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ImmersiveView: View {
     @Environment(AppModel.self) private var model
+    @Binding var immersionStyle: ImmersionStyle
     @State private var fusion = FusionController()
 
     var body: some View {
@@ -28,6 +29,11 @@ struct ImmersiveView: View {
         .onDisappear {
             model.isImmersive = false
         }
+        .onChange(of: model.fullScaleView, initial: true) { _, isFullScale in
+            immersionStyle = isFullScale ? .full : .mixed
+            fusion.setFullScale(isFullScale)
+        }
+        .preferredSurroundingsEffect(model.fullScaleView ? .dark : nil)
     }
 }
 
@@ -68,6 +74,7 @@ private struct EditPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("EDIT").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Toggle("Full-scale view", isOn: $model.fullScaleView)
             HStack { Button("Make White") { model.makeWhiteToken += 1 }; Button("Undo") { model.undoToken += 1 }; Button("Clear") { model.clearToken += 1 } }.buttonStyle(.bordered)
         }
         .padding(16).frame(width: 290).glassBackgroundEffect()
