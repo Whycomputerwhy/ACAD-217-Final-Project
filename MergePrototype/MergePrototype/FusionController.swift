@@ -24,7 +24,6 @@ final class FusionController {
     private var sources: [Entity] = []
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
-    private var savedWorkbenchTransform: Transform?
     private var isFullScale = false
     private var fullScaleNeedsRebuild = false
     private var lastResetToken = -1
@@ -100,16 +99,12 @@ final class FusionController {
         guard enabled != isFullScale else { return }
         isFullScale = enabled
         if enabled {
-            savedWorkbenchTransform = workbench.transform
-            // Keep the editing system visible but well behind the life-size composition.
-            workbench.transform = Transform(scale: .one, rotation: .init(), translation: [0, 1.0, -6.0])
+            // The miniature editor stays on its detected tabletop; only the presentation clone moves away.
             fullScaleRoot.isEnabled = true
             fullScaleNeedsRebuild = true
             rebuildFullScaleComposition()
         } else {
             fullScaleRoot.isEnabled = false
-            if let savedWorkbenchTransform { workbench.transform = savedWorkbenchTransform }
-            savedWorkbenchTransform = nil
         }
     }
 
@@ -313,7 +308,7 @@ final class FusionController {
             fullScaleComposition.addChild(clone)
         }
 
-        fullScaleRoot.position = [0, 0, -3.2]
+        fullScaleRoot.position = [0, 0, -6.0]
 
         if !sources.isEmpty {
             let bounds = fullScaleComposition.visualBounds(relativeTo: fullScaleRoot)
