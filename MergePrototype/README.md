@@ -32,7 +32,9 @@ MergePrototype/
 │   └── Resources/
 │       ├── apple.usdz
 │       ├── elephant.usdz
-│       └── crate.usdz
+│       ├── crate.usdz
+│       ├── chair.usdz, table.usdz, clock.usdz
+│       └── candlestick.usdz, ukulele.usdz, eraser.usdz, pen.usdz
 ├── Packages/RealityKitContent/       Default Reality Composer Pro package retained from the original project
 └── README.md                         This handoff document
 ```

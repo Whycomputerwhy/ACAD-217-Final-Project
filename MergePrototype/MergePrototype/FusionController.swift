@@ -5,6 +5,7 @@ import SwiftUI
 /// Owns the spatial workbench, plane placement, palette tiles, and fast visual-union preview.
 @MainActor
 final class FusionController {
+    static let availableAssets = ["apple", "elephant", "crate", "chair", "table", "clock", "candlestick", "ukulele", "eraser", "pen"]
     private let workSurfaceHeight: Float = 0.001
     private let snapReleaseHeight: Float = 0.05
     private let root = Entity()
@@ -125,13 +126,15 @@ final class FusionController {
             horizontal.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
             workbench.addChild(horizontal)
         }
-        ["apple", "elephant", "crate"].enumerated().forEach { index, kind in Task { await makePaletteTile(kind: kind, index: index) } }
+        Self.availableAssets.enumerated().forEach { index, kind in Task { await makePaletteTile(kind: kind, index: index) } }
     }
 
     private func makePaletteTile(kind: String, index: Int) async {
         guard let tile = await loadAsset(kind, desiredSize: 0.095) else { return }
         tile.name = "PaletteTile-\(kind)"
-        tile.position = [-0.38, 0.08, 0.17 - Float(index) * 0.15]
+        let column = Float(index % 2)
+        let row = Float(index / 2)
+        tile.position = [-0.38 - column * 0.13, 0.08, 0.20 - row * 0.10]
         tile.components.set(InputTargetComponent())
         tile.components.set(HoverEffectComponent())
         tile.generateCollisionShapes(recursive: true)
