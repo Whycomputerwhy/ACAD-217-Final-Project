@@ -35,6 +35,10 @@ final class FusionController {
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
+    private var lastCatalogDragToken = 0
+    private var catalogDragEntity: Entity?
+    private var catalogDragAsset: String?
+    private var catalogDragOrigin = SIMD3<Float>.zero
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
     private var configured = false
@@ -84,6 +88,7 @@ final class FusionController {
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
         if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
         if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
+        consumeCatalogDrag(model: model)
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -159,6 +164,7 @@ final class FusionController {
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
         lastAddAssetToken = model.addAssetToken
+        lastCatalogDragToken = model.catalogDragToken
         model.phase = .ready
     }
 
@@ -207,6 +213,47 @@ final class FusionController {
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
             fullScaleNeedsRebuild = true
+            if let appModel { refreshPreview(model: appModel) }
+        }
+    }
+
+    /// SwiftUI's Model3D catalog supplies a 2D drag translation. This maps that
+    /// translation onto the tabletop while the spawned RealityKit entity follows it.
+    private func consumeCatalogDrag(model: AppModel) {
+        if model.catalogDragToken != lastCatalogDragToken {
+            lastCatalogDragToken = model.catalogDragToken
+            beginCatalogDrag(asset: model.catalogDragAsset ?? "apple")
+        }
+
+        guard let entity = catalogDragEntity else { return }
+        if model.isCatalogDragging {
+            let translation = model.catalogDragTranslation
+            var requested = catalogDragOrigin
+            requested.x += Float(translation.width) * 0.0011
+            requested.z -= Float(translation.height) * 0.0011
+            entity.position = snappedPosition(for: entity, requested: requested)
+            if let appModel { refreshPreview(model: appModel) }
+        } else {
+            catalogDragEntity = nil
+            catalogDragAsset = nil
+            fullScaleNeedsRebuild = true
+        }
+    }
+
+    private func beginCatalogDrag(asset: String) {
+        catalogDragEntity = nil
+        catalogDragAsset = asset
+        catalogDragOrigin = nextPosition()
+        Task {
+            guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragAsset == asset else { return }
+            loaded.name = "FusionSource-\(asset)-\(sources.count)"
+            loaded.components.set(InputTargetComponent())
+            loaded.components.set(HoverEffectComponent())
+            loaded.generateCollisionShapes(recursive: true)
+            workbench.addChild(loaded)
+            loaded.position = snappedPosition(for: loaded, requested: catalogDragOrigin)
+            sources.append(loaded)
+            catalogDragEntity = loaded
             if let appModel { refreshPreview(model: appModel) }
         }
     }

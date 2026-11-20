@@ -48,26 +48,30 @@ private struct ObjectPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text("Tap a model to add it to the workspace")
+            Text("Pinch and drag a model into the workspace")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                 ForEach(Self.assets, id: \.0) { asset, title in
-                    Button {
-                        model.addAsset(asset)
-                    } label: {
-                        VStack(spacing: 2) {
-                            Model3D(named: asset, bundle: .main) { model in
-                                model.resizable().aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                ProgressView().controlSize(.mini)
-                            }
-                            .frame(width: 68, height: 54)
-                            Text(title).font(.system(size: 9)).lineLimit(1)
+                    VStack(spacing: 2) {
+                        Model3D(named: asset, bundle: .main) { model in
+                            model.resizable().aspectRatio(contentMode: .fit)
+                        } placeholder: {
+                            ProgressView().controlSize(.mini)
                         }
-                        .frame(width: 78, height: 76)
-                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                        .frame(width: 68, height: 54)
+                        Text(title).font(.system(size: 9)).lineLimit(1)
                     }
-                    .buttonStyle(.plain)
+                    .frame(width: 78, height: 76)
+                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                    .contentShape(RoundedRectangle(cornerRadius: 8))
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                model.beginCatalogDrag(asset)
+                                model.updateCatalogDrag(value.translation)
+                            }
+                            .onEnded { _ in model.endCatalogDrag() }
+                    )
                 }
             }
         }
