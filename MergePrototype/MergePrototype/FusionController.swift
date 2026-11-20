@@ -22,10 +22,6 @@ final class FusionController {
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
     private var sources: [Entity] = []
-    private var paletteSpawned: [String: Entity] = [:]
-    private var palettePositions: [String: SIMD3<Float>] = [:]
-    private var pendingPaletteSpawns: Set<String> = []
-    private var paletteTiles: [String: Entity] = [:]
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var savedWorkbenchTransform: Transform?
@@ -38,6 +34,7 @@ final class FusionController {
     private var lastUndoToken = 0
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
+    private var lastAddAssetToken = 0
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
     private var configured = false
@@ -86,6 +83,7 @@ final class FusionController {
         if model.clearToken != lastClearToken { lastClearToken = model.clearToken; clearSources(model: model) }
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
         if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
+        if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -112,15 +110,7 @@ final class FusionController {
 
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
-        if let kind = paletteKind(for: value.entity) {
-            palettePositions[kind] = position
-            if let source = paletteSpawned[kind] {
-                source.position = snappedPosition(for: source, requested: position)
-            } else if !pendingPaletteSpawns.contains(kind) {
-                pendingPaletteSpawns.insert(kind)
-                addAsset(kind, at: position, paletteKind: kind)
-            }
-        } else if let source = sourceRoot(for: value.entity) {
+        if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
                 // Preserve the exact grab point when the system's pinch gesture begins.
                 activeDrag = DragState(entity: source, offset: source.position - position)
@@ -131,7 +121,6 @@ final class FusionController {
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
-        if let kind = paletteKind(for: value.entity) { paletteSpawned[kind] = nil }
         activeDrag = nil
         refreshPreview(model: model)
     }
@@ -158,20 +147,6 @@ final class FusionController {
             horizontal.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
             workbench.addChild(horizontal)
         }
-        Self.availableAssets.enumerated().forEach { index, kind in Task { await makePaletteTile(kind: kind, index: index) } }
-    }
-
-    private func makePaletteTile(kind: String, index: Int) async {
-        guard let tile = await loadAsset(kind, desiredSize: 0.095) else { return }
-        tile.name = "PaletteTile-\(kind)"
-        let column = Float(index % 2)
-        let row = Float(index / 2)
-        tile.position = [-0.38 - column * 0.13, 0.08, 0.20 - row * 0.10]
-        tile.components.set(InputTargetComponent())
-        tile.components.set(HoverEffectComponent())
-        tile.generateCollisionShapes(recursive: true)
-        paletteRoot.addChild(tile)
-        paletteTiles[kind] = tile
     }
 
     private func reset(model: AppModel) {
@@ -183,14 +158,13 @@ final class FusionController {
         lastUndoToken = model.undoToken
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
+        lastAddAssetToken = model.addAssetToken
         model.phase = .ready
     }
 
     private func clearSources(model: AppModel) {
         sources.forEach { $0.removeFromParent() }
         sources.removeAll()
-        paletteSpawned.removeAll()
-        pendingPaletteSpawns.removeAll()
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
@@ -221,13 +195,10 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>, paletteKind: String? = nil) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
         Task {
-            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else {
-                if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }
-                return
-            }
-            loaded.position = paletteKind.flatMap { palettePositions[$0] } ?? position
+            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
+            loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
             loaded.components.set(HoverEffectComponent())
@@ -236,10 +207,6 @@ final class FusionController {
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
             fullScaleNeedsRebuild = true
-            if let paletteKind {
-                pendingPaletteSpawns.remove(paletteKind)
-                paletteSpawned[paletteKind] = loaded
-            }
             if let appModel { refreshPreview(model: appModel) }
         }
     }
@@ -261,17 +228,6 @@ final class FusionController {
         var snapped = requested
         snapped.y = workSurfaceHeight - bottomOffset
         return snapped
-    }
-
-    private func paletteKind(for entity: Entity) -> String? {
-        var candidate: Entity? = entity
-        while let current = candidate {
-            if current.name.hasPrefix("PaletteTile-") {
-                return String(current.name.dropFirst("PaletteTile-".count))
-            }
-            candidate = current.parent
-        }
-        return nil
     }
 
     private func sourceRoot(for entity: Entity) -> Entity? {

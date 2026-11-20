@@ -22,8 +22,15 @@ final class AppModel {
     var undoToken = 0
     var clearToken = 0
     var makeWhiteToken = 0
+    var addAssetToken = 0
+    var assetToAdd = "apple"
     var fullScaleView = false
     var inspectionEnabled = false
     var fusionCount = 0
+
+    func addAsset(_ asset: String) {
+        assetToAdd = asset
+        addAssetToken += 1
+    }
 }
 

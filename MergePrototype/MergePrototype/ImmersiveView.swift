@@ -38,6 +38,7 @@ struct ImmersiveView: View {
 }
 
 private struct ObjectPalette: View {
+    @Environment(AppModel.self) private var model
     private static let assets = [
         ("apple", "Apple"), ("elephant", "Elephant"), ("crate", "Crate"),
         ("chair", "Chair"), ("table", "Table"), ("clock", "Clock"),
@@ -47,21 +48,26 @@ private struct ObjectPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text("Pinch a nearby model to drag it into the workspace")
+            Text("Tap a model to add it to the workspace")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                 ForEach(Self.assets, id: \.0) { asset, title in
-                    VStack(spacing: 2) {
-                        Model3D(named: asset, bundle: .main) { model in
-                            model.resizable().aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            ProgressView().controlSize(.mini)
+                    Button {
+                        model.addAsset(asset)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Model3D(named: asset, bundle: .main) { model in
+                                model.resizable().aspectRatio(contentMode: .fit)
+                            } placeholder: {
+                                ProgressView().controlSize(.mini)
+                            }
+                            .frame(width: 68, height: 54)
+                            Text(title).font(.system(size: 9)).lineLimit(1)
                         }
-                        .frame(width: 68, height: 54)
-                        Text(title).font(.system(size: 9)).lineLimit(1)
+                        .frame(width: 78, height: 76)
+                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .frame(width: 78, height: 76)
-                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                    .buttonStyle(.plain)
                 }
             }
         }
