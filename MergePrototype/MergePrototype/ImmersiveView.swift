@@ -67,10 +67,14 @@ private struct ObjectPalette: View {
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     .contentShape(RoundedRectangle(cornerRadius: 8))
                     .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                model.beginCatalogDrag(asset, index: index)
-                                model.updateCatalogDrag(value.translation)
+                        SpatialEventGesture()
+                            .onChanged { events in
+                                for event in events where event.phase == .active {
+                                    let point = event.location3D
+                                    let location = SIMD3(Float(point.x), Float(point.y), Float(point.z))
+                                    model.beginCatalogDrag(asset, index: index, location: location)
+                                    model.updateCatalogDrag(location: location)
+                                }
                             }
                             .onEnded { _ in model.endCatalogDrag() }
                     )

@@ -38,6 +38,7 @@ final class FusionController {
     private var catalogDragEntity: Entity?
     private var catalogDragAsset: String?
     private var catalogDragOrigin = SIMD3<Float>.zero
+    private var catalogDragStartLocation = SIMD3<Float>.zero
     private var catalogDragGeneration = 0
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
@@ -223,7 +224,7 @@ final class FusionController {
 
         guard let entity = catalogDragEntity else { return }
         if model.isCatalogDragging {
-            entity.position = snappedPosition(for: entity, requested: catalogDragPosition(model.catalogDragTranslation))
+            entity.position = snappedPosition(for: entity, requested: catalogDragPosition(model.catalogDragLocation))
             if let appModel { refreshPreview(model: appModel) }
         } else {
             catalogDragEntity = nil
@@ -241,6 +242,7 @@ final class FusionController {
         let column = Float(index % 2)
         let row = Float(index / 2)
         catalogDragOrigin = [-0.43 + column * 0.065, 0.18, 0.16 - row * 0.035]
+        catalogDragStartLocation = appModel?.catalogDragStartLocation ?? .zero
         Task {
             guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragGeneration == generation else { return }
             loaded.name = "FusionSource-\(asset)-\(sources.count)"
@@ -249,23 +251,20 @@ final class FusionController {
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
             // Apply the latest drag state even if the user has already released.
-            let translation = appModel?.catalogDragTranslation ?? .zero
-            loaded.position = snappedPosition(for: loaded, requested: catalogDragPosition(translation))
+            let location = appModel?.catalogDragLocation ?? catalogDragStartLocation
+            loaded.position = snappedPosition(for: loaded, requested: catalogDragPosition(location))
             sources.append(loaded)
             catalogDragEntity = loaded
             if let appModel { refreshPreview(model: appModel) }
         }
     }
 
-    private func catalogDragPosition(_ translation: CGSize) -> SIMD3<Float> {
-        let x = Float(translation.width) * 0.0011
-        let z = -Float(translation.height) * 0.0011
-        let travel = simd_length(SIMD2(x, z))
+    private func catalogDragPosition(_ location: SIMD3<Float>) -> SIMD3<Float> {
+        let delta = location - catalogDragStartLocation
         var requested = catalogDragOrigin
-        requested.x += x
-        requested.z += z
-        // Leaving the catalog gradually brings the model down toward the tabletop.
-        requested.y -= travel * 1.4
+        // SpatialEventGesture reports the pinch location in the card's local 3D space.
+        // Convert its local point units to the meter-scale workbench coordinate system.
+        requested += SIMD3(delta.x, -delta.y, delta.z) * 0.0011
         return requested
     }
 

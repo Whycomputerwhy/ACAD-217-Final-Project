@@ -27,7 +27,8 @@ final class AppModel {
     var catalogDragToken = 0
     var catalogDragAsset: String?
     var catalogDragIndex = 0
-    var catalogDragTranslation = CGSize.zero
+    var catalogDragLocation = SIMD3<Float>.zero
+    var catalogDragStartLocation = SIMD3<Float>.zero
     var isCatalogDragging = false
     var fullScaleView = false
     var inspectionEnabled = false
@@ -38,17 +39,18 @@ final class AppModel {
         addAssetToken += 1
     }
 
-    func beginCatalogDrag(_ asset: String, index: Int) {
+    func beginCatalogDrag(_ asset: String, index: Int, location: SIMD3<Float>) {
         guard !isCatalogDragging || catalogDragAsset != asset else { return }
         catalogDragAsset = asset
         catalogDragIndex = index
-        catalogDragTranslation = .zero
+        catalogDragStartLocation = location
+        catalogDragLocation = location
         isCatalogDragging = true
         catalogDragToken += 1
     }
 
-    func updateCatalogDrag(_ translation: CGSize) {
-        catalogDragTranslation = translation
+    func updateCatalogDrag(location: SIMD3<Float>) {
+        catalogDragLocation = location
     }
 
     func endCatalogDrag() {
