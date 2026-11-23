@@ -26,6 +26,7 @@ final class FusionController {
     private var activePlaneID: UUID?
     private var isFullScale = false
     private var fullScaleNeedsRebuild = false
+    private var loadedHDRI: AppModel.HDRI?
     private var lastResetToken = -1
     private var lastAppleToken = 0
     private var lastElephantToken = 0
@@ -93,6 +94,7 @@ final class FusionController {
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
+        if model.fullScaleView, loadedHDRI != model.selectedHDRI { loadHDRI(model.selectedHDRI) }
         if isFullScale, fullScaleNeedsRebuild { rebuildFullScaleComposition() }
         refreshPreview(model: model)
     }
@@ -103,6 +105,7 @@ final class FusionController {
         if enabled {
             // The miniature editor stays on its detected tabletop; only the presentation clone moves away.
             fullScaleRoot.isEnabled = true
+            loadHDRI(appModel?.selectedHDRI ?? .morning)
             fullScaleNeedsRebuild = true
             rebuildFullScaleComposition()
         } else {
@@ -330,6 +333,17 @@ final class FusionController {
             fullScaleComposition.position.y -= bounds.min.y
         }
         fullScaleNeedsRebuild = false
+    }
+
+    private func loadHDRI(_ hdri: AppModel.HDRI) {
+        loadedHDRI = hdri
+        Task {
+            guard let environment = try? await EnvironmentResource(named: hdri.resourceName, in: .main) else { return }
+            guard loadedHDRI == hdri else { return }
+            fullScaleRoot.components.set(
+                ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
+            )
+        }
     }
 
     private func startPlaneDetection() {

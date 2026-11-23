@@ -21,6 +21,9 @@
 		100000000000000000000015 /* ukulele.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000016 /* ukulele.usdz */; };
 		100000000000000000000016 /* eraser.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000017 /* eraser.usdz */; };
 		100000000000000000000017 /* pen.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000018 /* pen.usdz */; };
+		100000000000000000000018 /* MorningSky.skybox in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000019 /* MorningSky.skybox */; };
+		100000000000000000000019 /* NightSky.skybox in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* NightSky.skybox */; };
+		100000000000000000000020 /* NoonGrass.skybox in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* NoonGrass.skybox */; };
 		100000000000000000000006 /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 900000000000000000000001 /* RealityKitContent */; };
 /* End PBXBuildFile section */
 
@@ -43,6 +46,9 @@
 		200000000000000000000016 /* ukulele.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/ukulele.usdz; sourceTree = "<group>"; };
 		200000000000000000000017 /* eraser.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/eraser.usdz; sourceTree = "<group>"; };
 		200000000000000000000018 /* pen.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/pen.usdz; sourceTree = "<group>"; };
+		200000000000000000000019 /* MorningSky.skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/MorningSky.skybox; sourceTree = "<group>"; };
+		200000000000000000000020 /* NightSky.skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/NightSky.skybox; sourceTree = "<group>"; };
+		200000000000000000000021 /* NoonGrass.skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/NoonGrass.skybox; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +87,9 @@
 				200000000000000000000016 /* ukulele.usdz */,
 				200000000000000000000017 /* eraser.usdz */,
 				200000000000000000000018 /* pen.usdz */,
+				200000000000000000000019 /* MorningSky.skybox */,
+				200000000000000000000020 /* NightSky.skybox */,
+				200000000000000000000021 /* NoonGrass.skybox */,
 				200000000000000000000006 /* Info.plist */,
 			);
 			path = MergePrototype;
@@ -138,7 +147,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		300000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000008 /* apple.usdz in Resources */, 100000000000000000000009 /* elephant.usdz in Resources */, 100000000000000000000010 /* crate.usdz in Resources */, 100000000000000000000011 /* chair.usdz in Resources */, 100000000000000000000012 /* table.usdz in Resources */, 100000000000000000000013 /* clock.usdz in Resources */, 100000000000000000000014 /* candlestick.usdz in Resources */, 100000000000000000000015 /* ukulele.usdz in Resources */, 100000000000000000000016 /* eraser.usdz in Resources */, 100000000000000000000017 /* pen.usdz in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+		300000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000008 /* apple.usdz in Resources */, 100000000000000000000009 /* elephant.usdz in Resources */, 100000000000000000000010 /* crate.usdz in Resources */, 100000000000000000000011 /* chair.usdz in Resources */, 100000000000000000000012 /* table.usdz in Resources */, 100000000000000000000013 /* clock.usdz in Resources */, 100000000000000000000014 /* candlestick.usdz in Resources */, 100000000000000000000015 /* ukulele.usdz in Resources */, 100000000000000000000016 /* eraser.usdz in Resources */, 100000000000000000000017 /* pen.usdz in Resources */, 100000000000000000000018 /* MorningSky.skybox in Resources */, 100000000000000000000019 /* NightSky.skybox in Resources */, 100000000000000000000020 /* NoonGrass.skybox in Resources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */

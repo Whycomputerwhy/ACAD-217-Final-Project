@@ -91,6 +91,12 @@ private struct EditPalette: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("EDIT").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Toggle("Full-scale view", isOn: $model.fullScaleView)
+            Picker("HDRI", selection: $model.selectedHDRI) {
+                ForEach(AppModel.HDRI.allCases) { hdri in
+                    Text(hdri.rawValue).tag(hdri)
+                }
+            }
+            .pickerStyle(.segmented)
             HStack { Button("Make White") { model.makeWhiteToken += 1 }; Button("Undo") { model.undoToken += 1 }; Button("Clear") { model.clearToken += 1 } }.buttonStyle(.bordered)
         }
         .padding(16).frame(width: 290).glassBackgroundEffect()

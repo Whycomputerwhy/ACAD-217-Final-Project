@@ -6,6 +6,14 @@ import Observation
 final class AppModel {
     static let playSpaceID = "FusionStudio"
 
+    enum HDRI: String, CaseIterable, Identifiable {
+        case morning = "Morning"
+        case night = "Night"
+        case grass = "Grass"
+        var id: String { rawValue }
+        var resourceName: String { rawValue + "Sky" }
+    }
+
     enum Phase: String {
         case ready = "Place two forms close together to begin fusing"
         case isolated = "Move a form near another to preview the union"
@@ -31,6 +39,7 @@ final class AppModel {
     var catalogDragStartLocation = SIMD3<Float>.zero
     var isCatalogDragging = false
     var fullScaleView = false
+    var selectedHDRI: HDRI = .morning
     var inspectionEnabled = false
     var fusionCount = 0
 
