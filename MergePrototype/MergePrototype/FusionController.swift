@@ -14,6 +14,7 @@ final class FusionController {
     private let paletteRoot = Entity()
     private let fullScaleRoot = Entity()
     private let fullScaleComposition = Entity()
+    private let fullScaleSky = ModelEntity()
     private let fullScaleGround = ModelEntity(
         mesh: .generatePlane(width: 14, depth: 14),
         materials: [SimpleMaterial(color: .init(white: 0.11, alpha: 1), isMetallic: false)]
@@ -56,6 +57,9 @@ final class FusionController {
         root.addChild(workbench)
         root.addChild(fullScaleRoot)
         fullScaleRoot.addChild(fullScaleComposition)
+        fullScaleSky.name = "HDRISky"
+        fullScaleSky.scale = [-1, 1, 1] // Render the sphere's texture on its inward-facing side.
+        fullScaleRoot.addChild(fullScaleSky)
         fullScaleGround.position.y = -0.002
         fullScaleRoot.addChild(fullScaleGround)
         fullScaleRoot.isEnabled = false
@@ -342,6 +346,14 @@ final class FusionController {
             guard loadedHDRI == hdri else { return }
             fullScaleRoot.components.set(
                 ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
+            )
+            var skyMaterial = UnlitMaterial()
+            skyMaterial.color.texture = .init(environment.skybox)
+            skyMaterial.readsDepth = false
+            skyMaterial.writesDepth = false
+            fullScaleSky.model = ModelComponent(
+                mesh: .generateSphere(radius: 60),
+                materials: [skyMaterial]
             )
         }
     }
