@@ -38,6 +38,7 @@ final class FusionController {
     private var catalogDragEntity: Entity?
     private var catalogDragAsset: String?
     private var catalogDragOrigin = SIMD3<Float>.zero
+    private var catalogDragGeneration = 0
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
     private var configured = false
@@ -217,16 +218,12 @@ final class FusionController {
     private func consumeCatalogDrag(model: AppModel) {
         if model.catalogDragToken != lastCatalogDragToken {
             lastCatalogDragToken = model.catalogDragToken
-            beginCatalogDrag(asset: model.catalogDragAsset ?? "apple")
+            beginCatalogDrag(asset: model.catalogDragAsset ?? "apple", index: model.catalogDragIndex)
         }
 
         guard let entity = catalogDragEntity else { return }
         if model.isCatalogDragging {
-            let translation = model.catalogDragTranslation
-            var requested = catalogDragOrigin
-            requested.x += Float(translation.width) * 0.0011
-            requested.z -= Float(translation.height) * 0.0011
-            entity.position = snappedPosition(for: entity, requested: requested)
+            entity.position = snappedPosition(for: entity, requested: catalogDragPosition(model.catalogDragTranslation))
             if let appModel { refreshPreview(model: appModel) }
         } else {
             catalogDragEntity = nil
@@ -235,22 +232,41 @@ final class FusionController {
         }
     }
 
-    private func beginCatalogDrag(asset: String) {
+    private func beginCatalogDrag(asset: String, index: Int) {
         catalogDragEntity = nil
         catalogDragAsset = asset
-        catalogDragOrigin = nextPosition()
+        catalogDragGeneration += 1
+        let generation = catalogDragGeneration
+        // Match the visible Model3D card positions on the left-hand attachment.
+        let column = Float(index % 2)
+        let row = Float(index / 2)
+        catalogDragOrigin = [-0.43 + column * 0.065, 0.18, 0.16 - row * 0.035]
         Task {
-            guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragAsset == asset else { return }
+            guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragGeneration == generation else { return }
             loaded.name = "FusionSource-\(asset)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
             loaded.components.set(HoverEffectComponent())
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
-            loaded.position = snappedPosition(for: loaded, requested: catalogDragOrigin)
+            // Apply the latest drag state even if the user has already released.
+            let translation = appModel?.catalogDragTranslation ?? .zero
+            loaded.position = snappedPosition(for: loaded, requested: catalogDragPosition(translation))
             sources.append(loaded)
             catalogDragEntity = loaded
             if let appModel { refreshPreview(model: appModel) }
         }
+    }
+
+    private func catalogDragPosition(_ translation: CGSize) -> SIMD3<Float> {
+        let x = Float(translation.width) * 0.0011
+        let z = -Float(translation.height) * 0.0011
+        let travel = simd_length(SIMD2(x, z))
+        var requested = catalogDragOrigin
+        requested.x += x
+        requested.z += z
+        // Leaving the catalog gradually brings the model down toward the tabletop.
+        requested.y -= travel * 1.4
+        return requested
     }
 
     private func loadAsset(_ kind: String, desiredSize: Float) async -> Entity? {

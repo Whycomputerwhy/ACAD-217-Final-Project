@@ -26,6 +26,7 @@ final class AppModel {
     var assetToAdd = "apple"
     var catalogDragToken = 0
     var catalogDragAsset: String?
+    var catalogDragIndex = 0
     var catalogDragTranslation = CGSize.zero
     var isCatalogDragging = false
     var fullScaleView = false
@@ -37,9 +38,10 @@ final class AppModel {
         addAssetToken += 1
     }
 
-    func beginCatalogDrag(_ asset: String) {
+    func beginCatalogDrag(_ asset: String, index: Int) {
         guard !isCatalogDragging || catalogDragAsset != asset else { return }
         catalogDragAsset = asset
+        catalogDragIndex = index
         catalogDragTranslation = .zero
         isCatalogDragging = true
         catalogDragToken += 1

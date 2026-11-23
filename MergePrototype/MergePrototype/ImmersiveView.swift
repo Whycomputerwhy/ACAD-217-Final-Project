@@ -51,7 +51,9 @@ private struct ObjectPalette: View {
             Text("Pinch and drag a model into the workspace")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
-                ForEach(Self.assets, id: \.0) { asset, title in
+                ForEach(Array(Self.assets.enumerated()), id: \.element.0) { index, item in
+                    let asset = item.0
+                    let title = item.1
                     VStack(spacing: 2) {
                         Model3D(named: asset, bundle: .main) { model in
                             model.resizable().aspectRatio(contentMode: .fit)
@@ -67,7 +69,7 @@ private struct ObjectPalette: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                model.beginCatalogDrag(asset)
+                                model.beginCatalogDrag(asset, index: index)
                                 model.updateCatalogDrag(value.translation)
                             }
                             .onEnded { _ in model.endCatalogDrag() }
