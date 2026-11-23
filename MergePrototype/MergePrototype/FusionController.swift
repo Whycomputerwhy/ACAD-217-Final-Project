@@ -17,7 +17,7 @@ final class FusionController {
     private let fullScaleSky = ModelEntity()
     private let fullScaleGround = ModelEntity(
         mesh: .generatePlane(width: 14, depth: 14),
-        materials: [SimpleMaterial(color: .init(white: 0.11, alpha: 1), isMetallic: false)]
+        materials: [SimpleMaterial(color: .init(white: 0.26, alpha: 1), isMetallic: false)]
     )
     private let session = ARKitSession()
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
@@ -58,7 +58,9 @@ final class FusionController {
         root.addChild(fullScaleRoot)
         fullScaleRoot.addChild(fullScaleComposition)
         fullScaleSky.name = "HDRISky"
-        fullScaleSky.scale = [-1, 1, 1] // Render the sphere's texture on its inward-facing side.
+        fullScaleSky.components.set(
+            ModelSortGroupComponent(group: .planarUIAlwaysBehind, order: -100)
+        )
         fullScaleRoot.addChild(fullScaleSky)
         fullScaleGround.position.y = -0.002
         fullScaleRoot.addChild(fullScaleGround)
@@ -365,10 +367,9 @@ final class FusionController {
                 return
             }
             guard loadedHDRI == hdri else { return }
-            var skyMaterial = UnlitMaterial()
-            skyMaterial.color.texture = .init(texture)
-            skyMaterial.readsDepth = false
-            skyMaterial.writesDepth = false
+            var skyMaterial = UnlitMaterial(texture: texture)
+            // Draw only the inside of the sphere and keep all SwiftUI attachments readable.
+            skyMaterial.faceCulling = .front
             fullScaleSky.model = ModelComponent(
                 mesh: .generateSphere(radius: 60),
                 materials: [skyMaterial]
