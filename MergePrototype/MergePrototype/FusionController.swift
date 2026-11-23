@@ -342,13 +342,31 @@ final class FusionController {
     private func loadHDRI(_ hdri: AppModel.HDRI) {
         loadedHDRI = hdri
         Task {
-            guard let environment = try? await EnvironmentResource(named: hdri.resourceName, in: .main) else { return }
             guard loadedHDRI == hdri else { return }
-            fullScaleRoot.components.set(
-                ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
-            )
+
+            // EnvironmentResource supplies image-based lighting. It is optional so a
+            // lighting-load issue never prevents the visible sky from appearing.
+            if let environment = try? await EnvironmentResource(named: hdri.resourceName, in: .main) {
+                fullScaleRoot.components.set(
+                    ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
+                )
+            }
+
+            guard let url = Bundle.main.url(
+                forResource: hdri.resourceName,
+                withExtension: "exr",
+                subdirectory: "\(hdri.resourceName).skybox"
+            ), let texture = try? await TextureResource(
+                contentsOf: url,
+                withName: hdri.resourceName,
+                options: .init(semantic: .hdrColor)
+            ) else {
+                print("Unable to load HDRI sky texture: \(hdri.resourceName)")
+                return
+            }
+            guard loadedHDRI == hdri else { return }
             var skyMaterial = UnlitMaterial()
-            skyMaterial.color.texture = .init(environment.skybox)
+            skyMaterial.color.texture = .init(texture)
             skyMaterial.readsDepth = false
             skyMaterial.writesDepth = false
             fullScaleSky.model = ModelComponent(
