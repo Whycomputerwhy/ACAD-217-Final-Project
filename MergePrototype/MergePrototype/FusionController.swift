@@ -21,6 +21,7 @@ final class FusionController {
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
     private var sources: [Entity] = []
+    private var assetTemplates: [String: Entity] = [:]
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -62,6 +63,7 @@ final class FusionController {
         makeWorkbench()
         content.add(root)
         reset(model: model)
+        Task { await preloadAssets() }
         startPlaneDetection()
     }
 
@@ -205,7 +207,6 @@ final class FusionController {
             guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
             loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
-            loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
@@ -222,11 +223,22 @@ final class FusionController {
     }
 
     private func loadAsset(_ kind: String, desiredSize: Float) async -> Entity? {
+        if let template = assetTemplates[kind] {
+            return template.clone(recursive: true)
+        }
         guard let url = Bundle.main.url(forResource: kind, withExtension: "usdz"), let loaded = try? await Entity(contentsOf: url) else { return nil }
         let bounds = loaded.visualBounds(relativeTo: nil)
         let extent = max(bounds.extents.x, max(bounds.extents.y, bounds.extents.z))
         loaded.scale = SIMD3(repeating: max(0.001, desiredSize / extent))
-        return loaded
+        loaded.generateCollisionShapes(recursive: true)
+        assetTemplates[kind] = loaded
+        return loaded.clone(recursive: true)
+    }
+
+    private func preloadAssets() async {
+        for kind in Self.availableAssets {
+            _ = await loadAsset(kind, desiredSize: 0.28)
+        }
     }
 
     /// Snap only while the visual bottom is within 5 cm of the grid; otherwise allow a free-air move.
