@@ -15,6 +15,7 @@ final class FusionController {
     private let paletteRoot = Entity()
     private let fullScaleRoot = Entity()
     private let fullScaleComposition = Entity()
+    private let fullScaleFactor: Float = 12
     private let fullScaleSky = ModelEntity()
     private let session = ARKitSession()
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
@@ -26,6 +27,7 @@ final class FusionController {
     private var isFullScale = false
     private var fullScaleNeedsRebuild = false
     private var loadedHDRI: AppModel.HDRI?
+    private var fullScaleClones: [ObjectIdentifier: Entity] = [:]
     private var lastResetToken = -1
     private var lastAppleToken = 0
     private var lastElephantToken = 0
@@ -123,6 +125,7 @@ final class FusionController {
                 activeDrag = DragState(entity: source, offset: source.position - position)
             }
             source.position = snappedPosition(for: source, requested: position + (activeDrag?.offset ?? .zero))
+            syncFullScaleTransform(for: source)
         }
         if let appModel { refreshPreview(model: appModel) }
     }
@@ -320,24 +323,34 @@ final class FusionController {
 
     private func rebuildFullScaleComposition() {
         fullScaleComposition.children.forEach { $0.removeFromParent() }
+        fullScaleClones.removeAll()
         fullScaleComposition.position = .zero
-        let fullScaleFactor: Float = 8
         for source in sources {
             let clone = source.clone(recursive: true)
-            clone.position = source.position(relativeTo: workbench) * fullScaleFactor
-            clone.orientation = source.orientation(relativeTo: workbench)
-            clone.scale = clone.scale * SIMD3(repeating: fullScaleFactor)
+            applyFullScaleTransform(from: source, to: clone)
             addImageBasedLightReceiver(to: clone)
             fullScaleComposition.addChild(clone)
+            fullScaleClones[ObjectIdentifier(source)] = clone
         }
 
-        fullScaleRoot.position = [0, 0, -6.0]
+        fullScaleRoot.position = [0, 0, -3.6]
 
         if !sources.isEmpty {
             let bounds = fullScaleComposition.visualBounds(relativeTo: fullScaleRoot)
             fullScaleComposition.position.y -= bounds.min.y
         }
         fullScaleNeedsRebuild = false
+    }
+
+    private func syncFullScaleTransform(for source: Entity) {
+        guard isFullScale, let clone = fullScaleClones[ObjectIdentifier(source)] else { return }
+        applyFullScaleTransform(from: source, to: clone)
+    }
+
+    private func applyFullScaleTransform(from source: Entity, to clone: Entity) {
+        clone.position = source.position(relativeTo: workbench) * fullScaleFactor
+        clone.orientation = source.orientation(relativeTo: workbench)
+        clone.scale = source.scale * SIMD3(repeating: fullScaleFactor)
     }
 
     private func loadHDRI(_ hdri: AppModel.HDRI) {
