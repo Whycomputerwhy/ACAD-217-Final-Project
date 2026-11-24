@@ -37,7 +37,6 @@ final class FusionController {
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
-    private var lastSelectedAssetToken = 0
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
     private var configured = false
@@ -90,10 +89,6 @@ final class FusionController {
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
         if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
         if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
-        if model.selectedAssetToken != lastSelectedAssetToken {
-            lastSelectedAssetToken = model.selectedAssetToken
-            if let asset = model.selectedAsset { prefetchAsset(asset, model: model) }
-        }
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -170,7 +165,6 @@ final class FusionController {
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
         lastAddAssetToken = model.addAssetToken
-        lastSelectedAssetToken = model.selectedAssetToken
         model.phase = .ready
     }
 
@@ -240,18 +234,6 @@ final class FusionController {
         return loaded.clone(recursive: true)
     }
 
-    private func prefetchAsset(_ kind: String, model: AppModel) {
-        if assetTemplates[kind] != nil {
-            model.isPlacementArmed = true
-            return
-        }
-        Task {
-            let didLoad = await loadAsset(kind, desiredSize: 0.28) != nil
-            guard model.selectedAsset == kind else { return }
-            model.isPlacementArmed = didLoad
-        }
-    }
-
     /// Snap only while the visual bottom is within 5 cm of the grid; otherwise allow a free-air move.
     private func snappedPosition(for entity: Entity, requested: SIMD3<Float>) -> SIMD3<Float> {
         let bounds = entity.visualBounds(relativeTo: workbench)
@@ -261,25 +243,6 @@ final class FusionController {
         var snapped = requested
         snapped.y = workSurfaceHeight - bottomOffset
         return snapped
-    }
-
-    func placeSelectedAsset(at value: EntityTargetValue<SpatialTapGesture.Value>, model: AppModel) {
-        guard model.isPlacementArmed,
-              let asset = model.selectedAsset,
-              isWorkbenchSurface(value.entity) else { return }
-        let position = value.convert(value.location3D, from: .local, to: workbench)
-        model.selectedAsset = nil
-        model.isPlacementArmed = false
-        addAsset(asset, at: position)
-    }
-
-    private func isWorkbenchSurface(_ entity: Entity) -> Bool {
-        var candidate: Entity? = entity
-        while let current = candidate {
-            if current.name == "WhiteGridSurface" { return true }
-            candidate = current.parent
-        }
-        return false
     }
 
     private func sourceRoot(for entity: Entity) -> Entity? {

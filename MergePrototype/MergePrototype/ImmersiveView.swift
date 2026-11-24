@@ -26,11 +26,6 @@ struct ImmersiveView: View {
                 .onChanged { fusion.drag($0) }
                 .onEnded { fusion.finishDrag($0, model: model) }
         )
-        .gesture(
-            SpatialTapGesture()
-                .targetedToAnyEntity()
-                .onEnded { fusion.placeSelectedAsset(at: $0, model: model) }
-        )
         .onDisappear {
             model.isImmersive = false
         }
@@ -53,14 +48,14 @@ private struct ObjectPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(instruction)
+            Text("Pinch a model to add it to the workspace")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                 ForEach(Self.assets, id: \.0) { item in
                     let asset = item.0
                     let title = item.1
                     Button {
-                        model.selectAsset(asset)
+                        model.addAsset(asset)
                     } label: {
                         VStack(spacing: 2) {
                             Model3D(named: asset, bundle: .main) { model in
@@ -72,10 +67,7 @@ private struct ObjectPalette: View {
                             Text(title).font(.system(size: 9)).lineLimit(1)
                         }
                         .frame(width: 78, height: 76)
-                        .background(
-                            model.selectedAsset == asset ? .white.opacity(0.22) : .white.opacity(0.06),
-                            in: RoundedRectangle(cornerRadius: 8)
-                        )
+                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                     .hoverEffect()
@@ -85,10 +77,6 @@ private struct ObjectPalette: View {
         .padding(14).frame(width: 220).glassBackgroundEffect()
     }
 
-    private var instruction: String {
-        guard model.selectedAsset != nil else { return "Look at a model and pinch to select" }
-        return model.isPlacementArmed ? "Pinch the grid to place the selected model" : "Preparing selected model…"
-    }
 }
 
 private struct EditPalette: View {

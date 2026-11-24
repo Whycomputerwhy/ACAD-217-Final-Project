@@ -38,9 +38,6 @@ final class AppModel {
     var makeWhiteToken = 0
     var addAssetToken = 0
     var assetToAdd = "apple"
-    var selectedAsset: String?
-    var selectedAssetToken = 0
-    var isPlacementArmed = false
     var fullScaleView = false
     var selectedHDRI: HDRI = .morning
     var inspectionEnabled = false
@@ -51,11 +48,6 @@ final class AppModel {
         addAssetToken += 1
     }
 
-    func selectAsset(_ asset: String) {
-        selectedAsset = asset
-        isPlacementArmed = false
-        selectedAssetToken += 1
-    }
 
 }
 
