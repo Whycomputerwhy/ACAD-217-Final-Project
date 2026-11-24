@@ -134,7 +134,7 @@ final class FusionController {
         if let kind = paletteKind(for: value.entity) {
             let finalPosition = value.convert(value.location3D, from: .local, to: workbench)
             palettePositions[kind] = finalPosition
-            addAsset(kind, at: finalPosition)
+            addAsset(kind, at: finalPosition, deferInteraction: true)
             palettePositions[kind] = nil
         }
         activeDrag = nil
@@ -183,10 +183,10 @@ final class FusionController {
             target.position = [
                 bounds.min.x + cellWidth * (column + 0.5),
                 bounds.max.y - headerHeight - cellHeight * (row + 0.5),
-                bounds.max.z + 0.008
+                bounds.max.z + 0.025
             ]
             target.components.set(CollisionComponent(shapes: [
-                .generateBox(size: [cellWidth * 0.86, cellHeight * 0.86, 0.016])
+                .generateBox(size: [cellWidth * 1.04, cellHeight * 1.02, 0.05])
             ]))
             target.components.set(InputTargetComponent())
             paletteRoot.addChild(target)
@@ -240,21 +240,35 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>, deferInteraction: Bool = false) {
         Task {
             guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
             loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
-            loaded.components.set(InputTargetComponent())
-            loaded.components.set(subtleHoverEffect())
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
+            if deferInteraction {
+                // The completed palette pinch can otherwise re-target this new
+                // collision shape and make the model feel glued to the hand.
+                Task {
+                    try? await Task.sleep(for: .milliseconds(450))
+                    guard loaded.parent != nil else { return }
+                    enableManipulation(on: loaded)
+                }
+            } else {
+                enableManipulation(on: loaded)
+            }
             if let appModel { refreshPreview(model: appModel) }
         }
+    }
+
+    private func enableManipulation(on entity: Entity) {
+        entity.components.set(InputTargetComponent())
+        entity.components.set(subtleHoverEffect())
     }
 
     private func loadAsset(_ kind: String, desiredSize: Float) async -> Entity? {
