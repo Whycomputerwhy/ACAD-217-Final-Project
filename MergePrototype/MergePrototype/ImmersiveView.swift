@@ -26,6 +26,11 @@ struct ImmersiveView: View {
                 .onChanged { fusion.drag($0) }
                 .onEnded { fusion.finishDrag($0, model: model) }
         )
+        .gesture(
+            SpatialTapGesture()
+                .targetedToAnyEntity()
+                .onEnded { fusion.placeSelectedAsset(at: $0, model: model) }
+        )
         .onDisappear {
             model.isImmersive = false
         }
@@ -38,6 +43,7 @@ struct ImmersiveView: View {
 }
 
 private struct ObjectPalette: View {
+    @Environment(AppModel.self) private var model
     private static let assets = [
         ("apple", "Apple"), ("elephant", "Elephant"), ("crate", "Crate"),
         ("chair", "Chair"), ("table", "Table"), ("clock", "Clock"),
@@ -47,23 +53,32 @@ private struct ObjectPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text("Pinch and drag a model into the workspace")
+            Text(model.selectedAsset == nil ? "Look at a model and pinch to select" : "Pinch the grid to place the selected model")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                 ForEach(Self.assets, id: \.0) { item in
                     let asset = item.0
                     let title = item.1
-                    VStack(spacing: 2) {
-                        Model3D(named: asset, bundle: .main) { model in
-                            model.resizable().aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            ProgressView().controlSize(.mini)
+                    Button {
+                        model.selectedAsset = asset
+                    } label: {
+                        VStack(spacing: 2) {
+                            Model3D(named: asset, bundle: .main) { model in
+                                model.resizable().aspectRatio(contentMode: .fit)
+                            } placeholder: {
+                                ProgressView().controlSize(.mini)
+                            }
+                            .frame(width: 68, height: 54)
+                            Text(title).font(.system(size: 9)).lineLimit(1)
                         }
-                        .frame(width: 68, height: 54)
-                        Text(title).font(.system(size: 9)).lineLimit(1)
+                        .frame(width: 78, height: 76)
+                        .background(
+                            model.selectedAsset == asset ? .white.opacity(0.22) : .white.opacity(0.06),
+                            in: RoundedRectangle(cornerRadius: 8)
+                        )
                     }
-                    .frame(width: 78, height: 76)
-                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                    .buttonStyle(.plain)
+                    .hoverEffect()
                 }
             }
         }

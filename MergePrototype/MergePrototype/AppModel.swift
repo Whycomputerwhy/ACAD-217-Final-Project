@@ -38,6 +38,7 @@ final class AppModel {
     var makeWhiteToken = 0
     var addAssetToken = 0
     var assetToAdd = "apple"
+    var selectedAsset: String?
     var fullScaleView = false
     var selectedHDRI: HDRI = .morning
     var inspectionEnabled = false

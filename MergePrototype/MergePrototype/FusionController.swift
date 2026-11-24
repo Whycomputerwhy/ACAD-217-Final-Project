@@ -21,7 +21,6 @@ final class FusionController {
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
     private var sources: [Entity] = []
-    private var palettePositions: [String: SIMD3<Float>] = [:]
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -38,7 +37,6 @@ final class FusionController {
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
     private var objectPaletteAttached = false
-    private var catalogHitTargetsAdded = false
     private var editPaletteAttached = false
     private var configured = false
     private var appModel: AppModel?
@@ -73,7 +71,6 @@ final class FusionController {
         attachment.position = [-0.32, 0.15, 0.02]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
-        makeCatalogHitTargets(for: attachment)
     }
 
     func attachEditPalette(_ attachment: Entity?) {
@@ -115,11 +112,7 @@ final class FusionController {
 
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
-        if let kind = paletteKind(for: value.entity) {
-            // Do not create a collision-enabled USDZ while the pinch is active.
-            // It would compete with the palette gesture and feel glued to the hand.
-            palettePositions[kind] = position
-        } else if let source = sourceRoot(for: value.entity) {
+        if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
                 // Preserve the exact grab point when the system's pinch gesture begins.
                 activeDrag = DragState(entity: source, offset: source.position - position)
@@ -131,12 +124,6 @@ final class FusionController {
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
-        if let kind = paletteKind(for: value.entity) {
-            let finalPosition = value.convert(value.location3D, from: .local, to: workbench)
-            palettePositions[kind] = finalPosition
-            addAsset(kind, at: finalPosition, deferInteraction: true)
-            palettePositions[kind] = nil
-        }
         activeDrag = nil
         refreshPreview(model: model)
     }
@@ -146,6 +133,8 @@ final class FusionController {
         surface.name = "WhiteGridSurface"
         surface.position.y = 0.0004 // Keep the overlay flush with the detected tabletop.
         surface.components.set(OpacityComponent(opacity: 0.08))
+        surface.components.set(InputTargetComponent())
+        surface.components.set(CollisionComponent(shapes: [.generateBox(size: [0.5, 0.008, 0.5])]))
         workbench.addChild(surface)
 
         let gridMaterial = SimpleMaterial(color: .white, isMetallic: false)
@@ -165,34 +154,6 @@ final class FusionController {
         }
     }
 
-    /// Keeps SwiftUI's Model3D catalog purely visual while RealityKit owns pinch
-    /// hit-testing and the resulting 3D drag coordinates.
-    private func makeCatalogHitTargets(for attachment: Entity) {
-        guard !catalogHitTargetsAdded else { return }
-        catalogHitTargetsAdded = true
-        let bounds = attachment.visualBounds(relativeTo: paletteRoot)
-        let headerHeight = bounds.extents.y * 0.20
-        let gridHeight = max(0.001, bounds.extents.y - headerHeight)
-        let cellWidth = bounds.extents.x / 2
-        let cellHeight = gridHeight / 5
-        for (index, kind) in Self.availableAssets.enumerated() {
-            let column = Float(index % 2)
-            let row = Float(index / 2)
-            let target = Entity()
-            target.name = "CatalogHit-\(kind)"
-            target.position = [
-                bounds.min.x + cellWidth * (column + 0.5),
-                bounds.max.y - headerHeight - cellHeight * (row + 0.5),
-                bounds.max.z + 0.025
-            ]
-            target.components.set(CollisionComponent(shapes: [
-                .generateBox(size: [cellWidth * 1.04, cellHeight * 1.02, 0.05])
-            ]))
-            target.components.set(InputTargetComponent())
-            paletteRoot.addChild(target)
-        }
-    }
-
     private func reset(model: AppModel) {
         clearSources(model: model)
         lastResetToken = model.resetToken
@@ -209,7 +170,6 @@ final class FusionController {
     private func clearSources(model: AppModel) {
         sources.forEach { $0.removeFromParent() }
         sources.removeAll()
-        palettePositions.removeAll()
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
@@ -240,7 +200,7 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>, deferInteraction: Bool = false) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
         Task {
             guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
             loaded.position = position
@@ -251,17 +211,7 @@ final class FusionController {
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
-            if deferInteraction {
-                // The completed palette pinch can otherwise re-target this new
-                // collision shape and make the model feel glued to the hand.
-                Task {
-                    try? await Task.sleep(for: .milliseconds(450))
-                    guard loaded.parent != nil else { return }
-                    enableManipulation(on: loaded)
-                }
-            } else {
-                enableManipulation(on: loaded)
-            }
+            enableManipulation(on: loaded)
             if let appModel { refreshPreview(model: appModel) }
         }
     }
@@ -290,15 +240,20 @@ final class FusionController {
         return snapped
     }
 
-    private func paletteKind(for entity: Entity) -> String? {
+    func placeSelectedAsset(at value: EntityTargetValue<SpatialTapGesture.Value>, model: AppModel) {
+        guard let asset = model.selectedAsset, isWorkbenchSurface(value.entity) else { return }
+        let position = value.convert(value.location3D, from: .local, to: workbench)
+        model.selectedAsset = nil
+        addAsset(asset, at: position)
+    }
+
+    private func isWorkbenchSurface(_ entity: Entity) -> Bool {
         var candidate: Entity? = entity
         while let current = candidate {
-            if current.name.hasPrefix("CatalogHit-") {
-                return String(current.name.dropFirst("CatalogHit-".count))
-            }
+            if current.name == "WhiteGridSurface" { return true }
             candidate = current.parent
         }
-        return nil
+        return false
     }
 
     private func sourceRoot(for entity: Entity) -> Entity? {
