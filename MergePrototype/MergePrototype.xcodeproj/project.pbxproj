@@ -11,6 +11,7 @@
 		100000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* AppModel.swift */; };
 		100000000000000000000004 /* ImmersiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* ImmersiveView.swift */; };
 		100000000000000000000007 /* FusionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* FusionController.swift */; };
+		100000000000000000000022 /* InteractionSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* InteractionSession.swift */; };
 		100000000000000000000008 /* apple.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* apple.usdz */; };
 		100000000000000000000009 /* elephant.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* elephant.usdz */; };
 		100000000000000000000010 /* crate.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* crate.usdz */; };
@@ -36,6 +37,7 @@
 		200000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		200000000000000000000007 /* MergePrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MergePrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		200000000000000000000008 /* FusionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FusionController.swift; sourceTree = "<group>"; };
+		200000000000000000000022 /* InteractionSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionSession.swift; sourceTree = "<group>"; };
 		200000000000000000000009 /* apple.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/apple.usdz; sourceTree = "<group>"; };
 		200000000000000000000010 /* elephant.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/elephant.usdz; sourceTree = "<group>"; };
 		200000000000000000000011 /* crate.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Resources/crate.usdz; sourceTree = "<group>"; };
@@ -77,6 +79,7 @@
 				200000000000000000000002 /* AppModel.swift */,
 				200000000000000000000004 /* ImmersiveView.swift */,
 				200000000000000000000008 /* FusionController.swift */,
+				200000000000000000000022 /* InteractionSession.swift */,
 				200000000000000000000009 /* apple.usdz */,
 				200000000000000000000010 /* elephant.usdz */,
 				200000000000000000000011 /* crate.usdz */,
@@ -160,6 +163,7 @@
 				100000000000000000000003,
 				100000000000000000000004,
 				100000000000000000000007,
+				100000000000000000000022,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

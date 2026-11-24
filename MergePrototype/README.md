@@ -1,95 +1,60 @@
-# MergePrototype — AI / developer handoff
+# MergePrototype — developer handoff
 
-Last updated: 2026-11-16
+Updated: 2026-11-24
 
-## Purpose
+visionOS tabletop composition prototype. Ten bundled USDZ assets can be arranged on a 0.5 × 0.5 m white grid. Full-scale view presents a live 12× copy 3.6 m ahead, surrounded by one of three EXR panoramas. There is currently **no Boolean union, hollow shell, or export mesh**.
 
-This is a visionOS spatial-composition prototype. A person assembles preset USDZ forms on a square workbench. The intended future experience is a true real-time visual Boolean union with a hollow, single-material interior and a separately generated export mesh.
+## Interaction
 
-No Boolean rendering is currently shown: source models stay visible and no merged mesh is generated.
+The left catalog uses individually placed SwiftUI Model3D cards. Each card has one visible RealityKit backing plate and one exact, non-overlapping collision target. The SwiftUI card is display-only; a single targeted system DragGesture owns all catalog and source manipulation. There are no hand-distance thresholds, low-level SpatialEventGesture handlers, invisible estimated grid overlays, or timed re-grab delays.
 
-## Current interaction
+Dragging a card starts one InteractionSession. It requests at most one clone for the entire gesture. If the system supplies a hand pose, that pose is converted through EntityTargetValue into workbench meters. Otherwise the simulator's normal 3D gesture location is used. A new instance has no input target until release. Gaze changes cannot change the session's target.
 
-1. The app launches directly into the mixed immersive space. A 1 × 1 point transparent `ContentView` exists only long enough to satisfy visionOS's required application-scene role, then dismisses itself.
-2. `PlaneDetectionProvider` looks for a horizontal table or floor. Once found, a 0.5 × 0.5 m near-zero-thickness white grid sits flush on that plane. A fixed position in front of the viewer is used as a fallback while sensing is unavailable or pending.
-3. The workbench starts empty. Object manipulation uses visionOS's default targeted pinch-and-drag gesture. The app preserves the object's initial offset from the system gesture location, so it does not jump to the hand when picked up. The visual bottom snaps to the grid only within 5 cm; lifting it farther releases the snap for free-air placement.
-4. Ten small 3D palette tiles sit on the left side of the workbench. The same assets are also displayed in a SwiftUI `Model3D` catalog. Pinching a physical palette tile creates a new full-size instance at the pinch position, with its bottom snapped to the tabletop.
-5. When any pair of source-object origins comes within 0.34 m, the app records an active fusion connection without adding any extra geometry.
-6. The right-side panel contains **Full-scale view**, **Make White**, Undo, and Clear. Make White replaces every visible material on the current composition's source objects with a new non-metallic white material.
-7. Full-scale view switches the immersive space to full immersion and shows a cloned version of the current composition at 8× scale, grounded on a 14 m virtual floor about 3.2 m in front of the viewer. The editing workbench, menus, and mini models remain available 6 m away. It deliberately does not use a bundled HDRI; a custom environment asset can be added later without changing the composition logic.
+Releasing or cancelling clears the session. A model that finishes loading after its creating gesture has ended is discarded rather than appearing unexpectedly. Existing objects preserve their original grab offset. Their visual bottoms snap within 5 cm of the grid. Changing immersion mode, clearing, undoing, or leaving the view also ends the current interaction.
 
-## Project map
+The right SwiftUI panel retains Make White, Undo (delete last), Clear, Full-scale view, and Morning / Night / Grass HDRI choices. It remains beside the grid.
 
-```text
-MergePrototype/
-├── MergePrototype.xcodeproj/        Xcode project; scheme is MergePrototype
-├── MergePrototype/
-│   ├── MergePrototypeApp.swift       App + ImmersiveSpace declaration
-│   ├── ContentView.swift             Invisible 1 × 1 bootstrap scene; opens the immersive space then dismisses itself
-│   ├── ImmersiveView.swift           RealityView, drag gesture, right-side SwiftUI attachment
-│   ├── AppModel.swift                Observable UI state and command tokens
-│   ├── FusionController.swift        Main runtime: workbench, plane tracking, palette, object spawning, preview
-│   ├── Info.plist                    Includes World Sensing permission copy
-│   └── Resources/
-│       ├── apple.usdz
-│       ├── elephant.usdz
-│       ├── crate.usdz
-│       ├── chair.usdz, table.usdz, clock.usdz
-│       └── candlestick.usdz, ukulele.usdz, eraser.usdz, pen.usdz
-├── Packages/RealityKitContent/       Default Reality Composer Pro package retained from the original project
-└── README.md                         This handoff document
+## Assets and collisions
+
+Every cached template has a scale-1 interaction root and a separate centered geometry child normalized to 0.28 m maximum extent. The root owns one fitted box collision. Do not place a fixed 0.30 m collision box on an arbitrarily scaled imported USDZ root: its effective world size can be enormous or tiny.
+
+Each asset has one shared in-flight load task. Two startup warmup lanes prepare the templates without convex-mesh collision generation; concurrent requests for the same asset share the same task. A card preview and a workbench instance must never share a cache entry normalized for different target sizes.
+
+Imported input, collision, hover, physics, manipulation, and image-light receiver components are stripped from the geometry. Authored visual materials remain intact. Full-scale presentation clones are also stripped of all interaction components, so they cannot capture pinch or gaze targeting.
+
+## Lighting
+
+HDRI images are copied inside MorningSky.skybox, NightSky.skybox, and NoonGrass.skybox. They are loaded explicitly from the bundled EXR URLs. The equirectangular image is used both for an inward-facing unlit sky sphere and for generated HDR cubemap lighting.
+
+The IBL source is a separate, enabled entity under the scene root. It is not under the full-scale root that is disabled in mixed mode. Only entities with actual ModelComponents receive explicit HDRI lighting, and only when full-scale mode and a valid HDRI are active. Returning to mixed mode removes those receiver overrides and restores system environment lighting. There is no artificial floor plane covering the panorama.
+
+## Files
+
+- MergePrototype/ImmersiveView.swift — cards, control attachment, one targeted gesture, GestureState cancellation cleanup.
+- MergePrototype/InteractionSession.swift — framework-independent gesture identity and exclusive target ownership.
+- MergePrototype/FusionController.swift — canonical template loading, fitted collisions, drag transforms, plane placement, full-scale copies, HDRI.
+- MergePrototype/AppModel.swift — observable scene/UI state and edit commands.
+- MergePrototype/MergePrototypeApp.swift — required bootstrap window and mixed/full ImmersiveSpace.
+- Tests/InteractionSessionChecks.swift — repeat-event, target-switch, release, late-load, cancellation, and pickup-offset regression checks.
+- Packages/RealityKitContent — retained Reality Composer Pro package.
+- TossGameController.swift — excluded legacy file; do not reactivate.
+
+## Verification
+
+Open MergePrototype.xcodeproj and run the MergePrototype scheme.
+
+Run the framework-independent regression checks from this directory:
+
+```sh
+swiftc -o /tmp/merge-session-checks MergePrototype/InteractionSession.swift Tests/InteractionSessionChecks.swift
+/tmp/merge-session-checks
 ```
 
-The visual layout reference supplied by the user lives beside this project, not inside it:
+In a Debug build, launch with --verify-studio to run bundled-resource checks in the simulator. It checks all ten normalized USDZ templates, reports clone timings, loads all three HDRI lighting resources, checks IBL receiver wiring, ensures full-scale copies cannot receive input, and verifies lighting overrides are removed in mixed mode. Results are printed with [StudioChecks].
 
-```text
-../layout.realitycomposerpro/
-```
+These checks verify state and resource correctness. They do not substitute for headset pinch/release testing. Do not describe a successful compilation as proof that interaction feels correct.
 
-It originally had a circular base and a side menu. The runtime implementation now replaces that base with a square programmatic RealityKit workbench so it can attach to a detected physical surface.
+## Plane placement
 
-## Source-of-truth files
-
-| Need to change | File | Notes |
-| --- | --- | --- |
-| Workbench placement or plane selection | `FusionController.swift` | `startPlaneDetection()` accepts `.table` and `.floor`; `workbench` is the anchor for all spatial content. `makeWorkbench()` makes the 0.5 m white-grid tabletop overlay. |
-| 3D object palette / drag-out behavior | `FusionController.swift` | `makePaletteTile`, `drag`, `addAsset`, and `paletteKind`. Do not add a tile without putting its USDZ in `Resources`. |
-| Spatial palettes and SwiftUI model catalog | `ImmersiveView.swift` | `ObjectPalette` is attached at `x = -0.40`; it renders the bundled USDZ files with `Model3D`. `EditPalette` is attached at `x = 0.42` and owns the Full-scale switch. |
-| Buttons / state events | `AppModel.swift` and `ContentView.swift` | The model uses incrementing tokens so RealityKit can consume UI commands reliably. |
-| Fusion state | `FusionController.swift` | `refreshPreview` decides which objects count as close enough to merge. It intentionally creates no overlay geometry. |
-| Full-scale presentation | `FusionController.swift`, `MergePrototypeApp.swift` | `setFullScale` makes 8× visual clones and places them on the virtual floor; the app switches between `.mixed` and `.full` immersion styles. |
-
-## Important technical constraints
-
-- The input assets are controlled application resources, not user imports. This is intentional and should remain true for the prototype.
-- A source object is loaded asynchronously from the app bundle, normalized to a target size, given collision shapes, and made an `InputTargetComponent`.
-- Drag handling walks up an entity's parent chain. Do not simplify this to inspect only the event entity: USDZ collision targets may be a child entity rather than the named root.
-- Palette spawning is asynchronous. `pendingPaletteSpawns` prevents drag-update events from creating a copy every frame while the first USDZ instance loads.
-- Object pickup uses visionOS's default targeted `DragGesture`; `DragState.offset` preserves the original grab point without hard-coding a pinch-distance threshold.
-- Plane sensing requires `NSWorldSensingUsageDescription` and only behaves fully on a Vision Pro. The simulator uses the fallback workbench position.
-- The project compiles with the visionOS SDK, but real-world placement and spatial dragging need device validation.
-- `TossGameController.swift` is leftover, excluded from the target, and unrelated to MergePrototype. Do not reactivate it.
-
-## What is deliberately not implemented
-
-- No mesh Boolean union.
-- No signed-distance field / raymarch renderer.
-- No hollow shell, thickness setting, interior camera, collision merge, mesh cleanup, export, or undo history beyond deleting the most recently added source.
-- No material transfer from source assets to a generated union surface.
-
-## Recommended next work
-
-1. **Validate on device.** Tune workbench dimensions, right-panel scale/position, initial source scale, and the 0.34 m connection threshold using real hand interaction.
-2. **Implement true visual union.** Use a Metal SDF renderer or dynamic mesh only when it derives the surface from actual model geometry rather than a center-to-center approximation; use the existing source transforms as inputs.
-3. **Separate preview from export.** On an explicit Export action, generate a watertight shell with a fixed thickness; retain source materials on the exterior and one shared material for interior faces.
-4. **Make edit controls honest.** Add object selection, delete selected, transform/rotation controls, and a real action stack before calling Undo a production feature.
-
-## Build
-
-1. Open `MergePrototype.xcodeproj` in Xcode.
-2. Select an Apple Vision Pro target or simulator.
-3. Set a signing team if Xcode requires one.
-4. Run; the immersive workspace opens directly. Grant World Sensing permission on device.
-
-The project was compiled successfully with the visionOS SDK after the current layout/plane-detection update.
+A classified table supplies world position and height once. Its arbitrary local rotation is not copied to the UI. Placement is frozen while manipulating or after objects exist. Without a detected table, the fallback is [0, 0.72, -0.9]. Viewer-relative plane ranking/extent fitting remains future work.
 

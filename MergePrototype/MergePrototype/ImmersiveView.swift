@@ -5,85 +5,93 @@ struct ImmersiveView: View {
     @Environment(AppModel.self) private var model
     @Binding var immersionStyle: ImmersionStyle
     @State private var fusion = FusionController()
+    @GestureState private var isDragging = false
 
     var body: some View {
         RealityView { content, attachments in
             fusion.configure(content: content, model: model)
-            fusion.attachEditPalette(attachments.entity(for: "editPalette"))
+            attachPanels(attachments)
         } update: { _, attachments in
             fusion.consumeCommands(model: model)
-            fusion.attachEditPalette(attachments.entity(for: "editPalette"))
-        }
-        attachments: {
+            attachPanels(attachments)
+        } attachments: {
+            Attachment(id: "objectHeader") {
+                Text("OBJECTS").font(.caption.weight(.semibold))
+                    .padding(12).frame(width: 236).glassBackgroundEffect()
+                    .allowsHitTesting(false)
+            }
+            ForEach(FusionController.availableAssets, id: \.self) { asset in
+                Attachment(id: asset) {
+                    CatalogCard(asset: asset).allowsHitTesting(false)
+                }
+            }
             Attachment(id: "editPalette") { EditPalette(model: model) }
         }
         .gesture(
-            DragGesture()
-                .targetedToAnyEntity()
+            DragGesture(minimumDistance: 2)
+                .targetedToEntity(where: .has(StudioInputTarget.self))
+                .updating($isDragging) { _, state, _ in state = true }
                 .onChanged { fusion.drag($0) }
-                .onEnded { fusion.finishDrag($0, model: model) }
+                .onEnded { fusion.finishDrag($0) }
         )
+        .onChange(of: isDragging) { _, active in
+            // GestureState resets for cancellations too; onEnded alone does not.
+            if !active { fusion.endInteraction() }
+        }
+        .onChange(of: model.fullScaleView, initial: true) { _, enabled in
+            fusion.endInteraction()
+            immersionStyle = enabled ? .full : .mixed
+            fusion.setFullScale(enabled)
+        }
         .onDisappear {
+            fusion.stop()
             model.isImmersive = false
         }
-        .onChange(of: model.fullScaleView, initial: true) { _, isFullScale in
-            immersionStyle = isFullScale ? .full : .mixed
-            fusion.setFullScale(isFullScale)
+    }
+
+    private func attachPanels(_ attachments: RealityViewAttachments) {
+        fusion.attachHeader(attachments.entity(for: "objectHeader"))
+        fusion.attachEditPalette(attachments.entity(for: "editPalette"))
+        for (index, asset) in FusionController.availableAssets.enumerated() {
+            fusion.attachCatalogCard(attachments.entity(for: asset), asset: asset, index: index)
         }
-        .preferredSurroundingsEffect(model.fullScaleView ? .dark : nil)
     }
 }
 
-private struct ObjectPalette: View {
-    @Environment(AppModel.self) private var model
-    private static let assets = [
-        ("apple", "Apple"), ("elephant", "Elephant"), ("crate", "Crate"),
-        ("chair", "Chair"), ("table", "Table"), ("clock", "Clock"),
-        ("candlestick", "Candle"), ("ukulele", "Ukulele"), ("eraser", "Eraser"), ("pen", "Pen")
-    ]
+private struct CatalogCard: View {
+    let asset: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text("Pinch a model to add it to the workspace")
-                .font(.caption2).foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
-                ForEach(Self.assets, id: \.0) { item in
-                    let asset = item.0
-                    let title = item.1
-                    VStack(spacing: 2) {
-                            Model3D(named: asset, bundle: .main) { model in
-                                model.resizable().aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                ProgressView().controlSize(.mini)
-                            }
-                            .frame(width: 68, height: 54)
-                            Text(title).font(.system(size: 9)).lineLimit(1)
-                    }
-                    .frame(width: 78, height: 76)
-                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-                    .hoverEffect()
-                }
+        VStack(spacing: 3) {
+            Model3D(named: asset, bundle: .main) { model in
+                model.resizable().aspectRatio(contentMode: .fit)
+            } placeholder: {
+                Color.clear
             }
+            .frame(width: 92, height: 66)
+            Text(asset.capitalized).font(.system(size: 12)).lineLimit(1)
         }
-        .padding(14).frame(width: 220).glassBackgroundEffect()
+        .frame(width: 108, height: 96)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
     }
-
 }
 
 private struct EditPalette: View {
     @Bindable var model: AppModel
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("EDIT").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Toggle("Full-scale view", isOn: $model.fullScaleView)
             Picker("HDRI", selection: $model.selectedHDRI) {
-                ForEach(AppModel.HDRI.allCases) { hdri in
-                    Text(hdri.rawValue).tag(hdri)
-                }
+                ForEach(AppModel.HDRI.allCases) { hdri in Text(hdri.rawValue).tag(hdri) }
             }
             .pickerStyle(.segmented)
-            HStack { Button("Make White") { model.makeWhiteToken += 1 }; Button("Undo") { model.undoToken += 1 }; Button("Clear") { model.clearToken += 1 } }.buttonStyle(.bordered)
+            HStack {
+                Button("Make White") { model.makeWhiteToken += 1 }
+                Button("Undo") { model.undoToken += 1 }
+                Button("Clear") { model.clearToken += 1 }
+            }.buttonStyle(.bordered)
         }
         .padding(16).frame(width: 290).glassBackgroundEffect()
     }
