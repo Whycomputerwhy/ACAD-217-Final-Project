@@ -15,10 +15,6 @@ final class FusionController {
     private let fullScaleRoot = Entity()
     private let fullScaleComposition = Entity()
     private let fullScaleSky = ModelEntity()
-    private let fullScaleGround = ModelEntity(
-        mesh: .generatePlane(width: 14, depth: 14),
-        materials: [UnlitMaterial(color: .init(white: 0.38, alpha: 1))]
-    )
     private let session = ARKitSession()
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
@@ -62,8 +58,6 @@ final class FusionController {
             ModelSortGroupComponent(group: .planarUIAlwaysBehind, order: -100)
         )
         fullScaleRoot.addChild(fullScaleSky)
-        fullScaleGround.position.y = -0.002
-        fullScaleRoot.addChild(fullScaleGround)
         fullScaleRoot.isEnabled = false
         workbench.addChild(previewRoot)
         workbench.addChild(paletteRoot)
