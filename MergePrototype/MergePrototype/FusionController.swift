@@ -21,9 +21,7 @@ final class FusionController {
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
     private var sources: [Entity] = []
-    private var paletteSpawned: [String: Entity] = [:]
     private var palettePositions: [String: SIMD3<Float>] = [:]
-    private var pendingPaletteSpawns: Set<String> = []
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -72,7 +70,7 @@ final class FusionController {
     func attachObjectPalette(_ attachment: Entity?) {
         guard let attachment, !objectPaletteAttached else { return }
         objectPaletteAttached = true
-        attachment.position = [-0.40, 0.20, 0]
+        attachment.position = [-0.32, 0.15, 0.02]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
         makeCatalogHitTargets(for: attachment)
@@ -81,7 +79,7 @@ final class FusionController {
     func attachEditPalette(_ attachment: Entity?) {
         guard let attachment, !editPaletteAttached else { return }
         editPaletteAttached = true
-        attachment.position = [0.42, 0.20, 0]
+        attachment.position = [0.32, 0.15, 0.02]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
     }
@@ -118,13 +116,9 @@ final class FusionController {
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
         if let kind = paletteKind(for: value.entity) {
+            // Do not create a collision-enabled USDZ while the pinch is active.
+            // It would compete with the palette gesture and feel glued to the hand.
             palettePositions[kind] = position
-            if let source = paletteSpawned[kind] {
-                source.position = snappedPosition(for: source, requested: position)
-            } else if !pendingPaletteSpawns.contains(kind) {
-                pendingPaletteSpawns.insert(kind)
-                addAsset(kind, at: position, paletteKind: kind)
-            }
         } else if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
                 // Preserve the exact grab point when the system's pinch gesture begins.
@@ -137,7 +131,12 @@ final class FusionController {
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
-        if let kind = paletteKind(for: value.entity) { paletteSpawned[kind] = nil }
+        if let kind = paletteKind(for: value.entity) {
+            let finalPosition = value.convert(value.location3D, from: .local, to: workbench)
+            palettePositions[kind] = finalPosition
+            addAsset(kind, at: finalPosition)
+            palettePositions[kind] = nil
+        }
         activeDrag = nil
         refreshPreview(model: model)
     }
@@ -210,9 +209,7 @@ final class FusionController {
     private func clearSources(model: AppModel) {
         sources.forEach { $0.removeFromParent() }
         sources.removeAll()
-        paletteSpawned.removeAll()
         palettePositions.removeAll()
-        pendingPaletteSpawns.removeAll()
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
@@ -243,13 +240,10 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>, paletteKind: String? = nil) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
         Task {
-            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else {
-                if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }
-                return
-            }
-            loaded.position = paletteKind.flatMap { palettePositions[$0] } ?? position
+            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
+            loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
             loaded.components.set(subtleHoverEffect())
@@ -259,10 +253,6 @@ final class FusionController {
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
-            if let paletteKind {
-                pendingPaletteSpawns.remove(paletteKind)
-                paletteSpawned[paletteKind] = loaded
-            }
             if let appModel { refreshPreview(model: appModel) }
         }
     }
