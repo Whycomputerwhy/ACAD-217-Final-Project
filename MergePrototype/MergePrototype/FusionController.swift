@@ -1,4 +1,5 @@
 import ARKit
+import ImageIO
 import RealityKit
 import SwiftUI
 
@@ -341,15 +342,6 @@ final class FusionController {
         Task {
             guard loadedHDRI == hdri else { return }
 
-            // EnvironmentResource supplies image-based lighting. It is optional so a
-            // lighting-load issue never prevents the visible sky from appearing.
-            if let environment = try? await EnvironmentResource(named: hdri.resourceName, in: .main) {
-                fullScaleRoot.components.set(
-                    ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
-                )
-                addImageBasedLightReceiver(to: fullScaleComposition)
-            }
-
             guard let url = Bundle.main.url(
                 forResource: hdri.resourceName,
                 withExtension: "exr",
@@ -363,6 +355,29 @@ final class FusionController {
                 return
             }
             guard loadedHDRI == hdri else { return }
+
+            // Build the IBL from this exact EXR rather than relying on a separate
+            // bundle lookup. This guarantees the visible sky and model lighting match.
+            if let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+               let image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
+               let cube = try? await TextureResource(
+                    cubeFromEquirectangular: image,
+                    named: "\(hdri.resourceName)-cube",
+                    quality: .normal,
+                    faceSize: 512,
+                    options: .init(semantic: .hdrColor)
+               ), let environment = try? await EnvironmentResource(
+                    cube: cube,
+                    options: .init()
+               ) {
+                fullScaleRoot.components.set(
+                    ImageBasedLightComponent(source: .single(environment), intensityExponent: 2.0)
+                )
+                addImageBasedLightReceiver(to: fullScaleComposition)
+            } else {
+                print("Unable to build HDRI lighting: \(hdri.resourceName)")
+            }
+
             var skyMaterial = UnlitMaterial(texture: texture)
             // Draw only the inside of the sphere and keep all SwiftUI attachments readable.
             skyMaterial.faceCulling = .front
