@@ -22,6 +22,7 @@ final class FusionController {
 
     private var sources: [Entity] = []
     private var assetTemplates: [String: Entity] = [:]
+    private var pendingPaletteSpawns: Set<String> = []
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -38,6 +39,7 @@ final class FusionController {
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
     private var objectPaletteAttached = false
+    private var catalogHitTargetsAdded = false
     private var editPaletteAttached = false
     private var configured = false
     private var appModel: AppModel?
@@ -72,6 +74,7 @@ final class FusionController {
         attachment.position = [-0.32, 0.15, 0.02]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
+        makeCatalogHitTargets(for: attachment)
     }
 
     func attachEditPalette(_ attachment: Entity?) {
@@ -113,7 +116,14 @@ final class FusionController {
 
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
-        if let source = sourceRoot(for: value.entity) {
+        if let kind = paletteKind(for: value.entity) {
+            if !pendingPaletteSpawns.contains(kind) {
+                pendingPaletteSpawns.insert(kind)
+                let handPoint = value.gestureValue.inputDevicePose3D?.position ?? value.location3D
+                let handPosition = value.convert(handPoint, from: .local, to: workbench)
+                addAsset(kind, at: handPosition, deferInteraction: true, paletteKind: kind)
+            }
+        } else if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
                 // Preserve the exact grab point when the system's pinch gesture begins.
                 activeDrag = DragState(entity: source, offset: source.position - position)
@@ -152,6 +162,23 @@ final class FusionController {
             horizontal.position = [0, 0.00075, offset]
             horizontal.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
             workbench.addChild(horizontal)
+        }
+    }
+
+    private func makeCatalogHitTargets(for attachment: Entity) {
+        guard !catalogHitTargetsAdded else { return }
+        catalogHitTargetsAdded = true
+        let bounds = attachment.visualBounds(relativeTo: paletteRoot)
+        let header = bounds.extents.y * 0.20
+        let cellWidth = bounds.extents.x / 2
+        let cellHeight = max(0.001, bounds.extents.y - header) / 5
+        for (index, kind) in Self.availableAssets.enumerated() {
+            let target = Entity()
+            target.name = "CatalogHit-\(kind)"
+            target.position = [bounds.min.x + cellWidth * (Float(index % 2) + 0.5), bounds.max.y - header - cellHeight * (Float(index / 2) + 0.5), bounds.max.z + 0.025]
+            target.components.set(CollisionComponent(shapes: [.generateBox(size: [cellWidth * 1.04, cellHeight * 1.02, 0.05])]))
+            target.components.set(InputTargetComponent())
+            paletteRoot.addChild(target)
         }
     }
 
@@ -201,9 +228,9 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>, deferInteraction: Bool = false, paletteKind: String? = nil) {
         Task {
-            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
+            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { pendingPaletteSpawns.remove(paletteKind ?? ""); return }
             loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(CollisionComponent(shapes: [.generateBox(size: [0.30, 0.30, 0.30])]))
@@ -212,7 +239,14 @@ final class FusionController {
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
-            enableManipulation(on: loaded)
+            if deferInteraction {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(450))
+                    guard loaded.parent != nil else { return }
+                    enableManipulation(on: loaded)
+                }
+            } else { enableManipulation(on: loaded) }
+            if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }
             if let appModel { refreshPreview(model: appModel) }
         }
     }
@@ -220,6 +254,15 @@ final class FusionController {
     private func enableManipulation(on entity: Entity) {
         entity.components.set(InputTargetComponent())
         entity.components.set(subtleHoverEffect())
+    }
+
+    private func paletteKind(for entity: Entity) -> String? {
+        var candidate: Entity? = entity
+        while let current = candidate {
+            if current.name.hasPrefix("CatalogHit-") { return String(current.name.dropFirst("CatalogHit-".count)) }
+            candidate = current.parent
+        }
+        return nil
     }
 
     private func loadAsset(_ kind: String, desiredSize: Float) async -> Entity? {

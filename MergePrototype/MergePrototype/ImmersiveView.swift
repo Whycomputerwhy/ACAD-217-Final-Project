@@ -54,10 +54,7 @@ private struct ObjectPalette: View {
                 ForEach(Self.assets, id: \.0) { item in
                     let asset = item.0
                     let title = item.1
-                    Button {
-                        model.addAsset(asset)
-                    } label: {
-                        VStack(spacing: 2) {
+                    VStack(spacing: 2) {
                             Model3D(named: asset, bundle: .main) { model in
                                 model.resizable().aspectRatio(contentMode: .fit)
                             } placeholder: {
@@ -65,11 +62,9 @@ private struct ObjectPalette: View {
                             }
                             .frame(width: 68, height: 54)
                             Text(title).font(.system(size: 9)).lineLimit(1)
-                        }
-                        .frame(width: 78, height: 76)
-                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.plain)
+                    .frame(width: 78, height: 76)
+                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     .hoverEffect()
                 }
             }
