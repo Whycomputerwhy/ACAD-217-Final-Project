@@ -215,6 +215,7 @@ final class FusionController {
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
             fullScaleNeedsRebuild = true
+            if isFullScale { addImageBasedLightReceiver(to: loaded) }
             if let appModel { refreshPreview(model: appModel) }
         }
     }
@@ -259,6 +260,7 @@ final class FusionController {
             let location = appModel?.catalogDragLocation ?? catalogDragStartLocation
             loaded.position = snappedPosition(for: loaded, requested: catalogDragPosition(location))
             sources.append(loaded)
+            if isFullScale { addImageBasedLightReceiver(to: loaded) }
             catalogDragEntity = loaded
             if let appModel { refreshPreview(model: appModel) }
         }
@@ -375,6 +377,7 @@ final class FusionController {
                     ImageBasedLightComponent(source: .single(environment), intensityExponent: 2.0)
                 )
                 addImageBasedLightReceiver(to: fullScaleComposition)
+                addImageBasedLightReceiver(to: workbench)
             } else {
                 print("Unable to build HDRI lighting: \(hdri.resourceName)")
             }
