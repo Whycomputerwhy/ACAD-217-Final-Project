@@ -8,6 +8,8 @@ visionOS tabletop composition prototype. Ten bundled USDZ assets can be arranged
 
 The left catalog uses individually placed SwiftUI Model3D cards. Each card has one visible RealityKit backing plate and one exact, non-overlapping collision target. The SwiftUI card is display-only; a single targeted system DragGesture owns all catalog and source manipulation. There are no hand-distance thresholds, low-level SpatialEventGesture handlers, invisible estimated grid overlays, or timed re-grab delays.
 
+The shared drag explicitly uses `handActivationBehavior(.pinch)` for both catalog cards and placed objects. SwiftUI's default `.automatic` also recognizes direct touch-and-drag, which allows an open hand to push/drag nearby objects. Do not revert to automatic activation or restrict input to indirect-only: direct and indirect pinch should both remain available. Gaze hover highlights a target without moving it.
+
 Dragging a card starts one InteractionSession. It requests at most one clone for the entire gesture. If the system supplies a hand pose, that pose is converted through EntityTargetValue into workbench meters. Otherwise the simulator's normal 3D gesture location is used. A new instance has no input target until release. Gaze changes cannot change the session's target.
 
 Releasing or cancelling clears the session. A model that finishes loading after its creating gesture has ended is discarded rather than appearing unexpectedly. Existing objects preserve their original grab offset. Their visual bottoms snap within 5 cm of the grid. Changing immersion mode, clearing, undoing, or leaving the view also ends the current interaction.

@@ -29,6 +29,9 @@ struct ImmersiveView: View {
         }
         .gesture(
             DragGesture(minimumDistance: 2)
+                // The automatic behavior also accepts direct touch-and-drag with
+                // an open hand. Require the system's pinch for both input distances.
+                .handActivationBehavior(.pinch)
                 .targetedToEntity(where: .has(StudioInputTarget.self))
                 .updating($isDragging) { _, state, _ in state = true }
                 .onChanged { fusion.drag($0) }
