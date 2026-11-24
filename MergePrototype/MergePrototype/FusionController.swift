@@ -22,6 +22,7 @@ final class FusionController {
     private var sources: [Entity] = []
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
+    private var hasLockedWorkbenchPlacement = false
     private var isFullScale = false
     private var fullScaleNeedsRebuild = false
     private var loadedHDRI: AppModel.HDRI?
@@ -402,11 +403,19 @@ final class FusionController {
                 try await session.run([planeProvider])
                 for await update in planeProvider.anchorUpdates {
                     guard update.event != .removed,
-                          update.anchor.classification == .table || update.anchor.classification == .floor else { continue }
-                    if !isFullScale && (activePlaneID == nil || activePlaneID == update.anchor.id) {
-                        activePlaneID = update.anchor.id
-                        workbench.transform = Transform(matrix: update.anchor.originFromAnchorTransform)
-                    }
+                          update.anchor.classification == .table,
+                          !isFullScale,
+                          !hasLockedWorkbenchPlacement else { continue }
+
+                    // A classified table is substantially more reliable than a floor
+                    // for a 0.5 m editing surface. Keep the fallback centered in front
+                    // of the viewer until one is confirmed, then lock it in place.
+                    var transform = Transform(matrix: update.anchor.originFromAnchorTransform)
+                    let comfortableInset = simd_act(transform.rotation, SIMD3<Float>(0, 0.002, -0.10))
+                    transform.translation += comfortableInset
+                    workbench.transform = transform
+                    activePlaneID = update.anchor.id
+                    hasLockedWorkbenchPlacement = true
                 }
             } catch { }
         }
