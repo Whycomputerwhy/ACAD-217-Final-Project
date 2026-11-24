@@ -38,7 +38,6 @@ struct ImmersiveView: View {
 }
 
 private struct ObjectPalette: View {
-    @Environment(AppModel.self) private var model
     private static let assets = [
         ("apple", "Apple"), ("elephant", "Elephant"), ("crate", "Crate"),
         ("chair", "Chair"), ("table", "Table"), ("clock", "Clock"),
@@ -51,7 +50,7 @@ private struct ObjectPalette: View {
             Text("Pinch and drag a model into the workspace")
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
-                ForEach(Array(Self.assets.enumerated()), id: \.element.0) { index, item in
+                ForEach(Self.assets, id: \.0) { item in
                     let asset = item.0
                     let title = item.1
                     VStack(spacing: 2) {
@@ -65,15 +64,6 @@ private struct ObjectPalette: View {
                     }
                     .frame(width: 78, height: 76)
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-                    .contentShape(RoundedRectangle(cornerRadius: 8))
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                model.beginCatalogDrag(asset, index: index)
-                                model.updateCatalogDrag(translation: value.translation)
-                            }
-                            .onEnded { _ in model.endCatalogDrag() }
-                    )
                 }
             }
         }

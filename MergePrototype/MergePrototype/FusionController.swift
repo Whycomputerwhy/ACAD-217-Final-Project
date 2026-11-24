@@ -21,6 +21,9 @@ final class FusionController {
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
 
     private var sources: [Entity] = []
+    private var paletteSpawned: [String: Entity] = [:]
+    private var palettePositions: [String: SIMD3<Float>] = [:]
+    private var pendingPaletteSpawns: Set<String> = []
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -36,12 +39,8 @@ final class FusionController {
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
-    private var lastCatalogDragToken = 0
-    private var catalogDragEntity: Entity?
-    private var catalogDragAsset: String?
-    private var catalogDragOrigin = SIMD3<Float>.zero
-    private var catalogDragGeneration = 0
     private var objectPaletteAttached = false
+    private var catalogHitTargetsAdded = false
     private var editPaletteAttached = false
     private var configured = false
     private var appModel: AppModel?
@@ -76,6 +75,7 @@ final class FusionController {
         attachment.position = [-0.40, 0.20, 0]
         attachment.scale = SIMD3(repeating: 0.42)
         paletteRoot.addChild(attachment)
+        makeCatalogHitTargets(for: attachment)
     }
 
     func attachEditPalette(_ attachment: Entity?) {
@@ -93,7 +93,6 @@ final class FusionController {
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
         if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
         if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
-        consumeCatalogDrag(model: model)
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -118,7 +117,15 @@ final class FusionController {
 
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
-        if let source = sourceRoot(for: value.entity) {
+        if let kind = paletteKind(for: value.entity) {
+            palettePositions[kind] = position
+            if let source = paletteSpawned[kind] {
+                source.position = snappedPosition(for: source, requested: position)
+            } else if !pendingPaletteSpawns.contains(kind) {
+                pendingPaletteSpawns.insert(kind)
+                addAsset(kind, at: position, paletteKind: kind)
+            }
+        } else if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
                 // Preserve the exact grab point when the system's pinch gesture begins.
                 activeDrag = DragState(entity: source, offset: source.position - position)
@@ -130,6 +137,7 @@ final class FusionController {
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
+        if let kind = paletteKind(for: value.entity) { paletteSpawned[kind] = nil }
         activeDrag = nil
         refreshPreview(model: model)
     }
@@ -158,6 +166,34 @@ final class FusionController {
         }
     }
 
+    /// Keeps SwiftUI's Model3D catalog purely visual while RealityKit owns pinch
+    /// hit-testing and the resulting 3D drag coordinates.
+    private func makeCatalogHitTargets(for attachment: Entity) {
+        guard !catalogHitTargetsAdded else { return }
+        catalogHitTargetsAdded = true
+        let bounds = attachment.visualBounds(relativeTo: paletteRoot)
+        let headerHeight = bounds.extents.y * 0.20
+        let gridHeight = max(0.001, bounds.extents.y - headerHeight)
+        let cellWidth = bounds.extents.x / 2
+        let cellHeight = gridHeight / 5
+        for (index, kind) in Self.availableAssets.enumerated() {
+            let column = Float(index % 2)
+            let row = Float(index / 2)
+            let target = Entity()
+            target.name = "CatalogHit-\(kind)"
+            target.position = [
+                bounds.min.x + cellWidth * (column + 0.5),
+                bounds.max.y - headerHeight - cellHeight * (row + 0.5),
+                bounds.max.z + 0.008
+            ]
+            target.components.set(CollisionComponent(shapes: [
+                .generateBox(size: [cellWidth * 0.86, cellHeight * 0.86, 0.016])
+            ]))
+            target.components.set(InputTargetComponent())
+            paletteRoot.addChild(target)
+        }
+    }
+
     private func reset(model: AppModel) {
         clearSources(model: model)
         lastResetToken = model.resetToken
@@ -168,13 +204,15 @@ final class FusionController {
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
         lastAddAssetToken = model.addAssetToken
-        lastCatalogDragToken = model.catalogDragToken
         model.phase = .ready
     }
 
     private func clearSources(model: AppModel) {
         sources.forEach { $0.removeFromParent() }
         sources.removeAll()
+        paletteSpawned.removeAll()
+        palettePositions.removeAll()
+        pendingPaletteSpawns.removeAll()
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
@@ -205,10 +243,13 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>, paletteKind: String? = nil) {
         Task {
-            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
-            loaded.position = position
+            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else {
+                if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }
+                return
+            }
+            loaded.position = paletteKind.flatMap { palettePositions[$0] } ?? position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
             loaded.components.set(subtleHoverEffect())
@@ -218,61 +259,12 @@ final class FusionController {
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
+            if let paletteKind {
+                pendingPaletteSpawns.remove(paletteKind)
+                paletteSpawned[paletteKind] = loaded
+            }
             if let appModel { refreshPreview(model: appModel) }
         }
-    }
-
-    /// SwiftUI's Model3D catalog supplies a 2D drag translation. This maps that
-    /// translation onto the tabletop while the spawned RealityKit entity follows it.
-    private func consumeCatalogDrag(model: AppModel) {
-        if model.catalogDragToken != lastCatalogDragToken {
-            lastCatalogDragToken = model.catalogDragToken
-            beginCatalogDrag(asset: model.catalogDragAsset ?? "apple", index: model.catalogDragIndex)
-        }
-
-        guard let entity = catalogDragEntity else { return }
-        if model.isCatalogDragging {
-            entity.position = snappedPosition(for: entity, requested: catalogDragPosition(model.catalogDragTranslation))
-            if let appModel { refreshPreview(model: appModel) }
-        } else {
-            catalogDragEntity = nil
-            catalogDragAsset = nil
-            fullScaleNeedsRebuild = true
-        }
-    }
-
-    private func beginCatalogDrag(asset: String, index: Int) {
-        catalogDragEntity = nil
-        catalogDragAsset = asset
-        catalogDragGeneration += 1
-        let generation = catalogDragGeneration
-        // Match the visible Model3D card positions on the left-hand attachment.
-        let column = Float(index % 2)
-        let row = Float(index / 2)
-        catalogDragOrigin = [-0.43 + column * 0.065, 0.18, 0.16 - row * 0.035]
-        Task {
-            guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragGeneration == generation else { return }
-            loaded.name = "FusionSource-\(asset)-\(sources.count)"
-            loaded.components.set(InputTargetComponent())
-            loaded.components.set(subtleHoverEffect())
-            loaded.generateCollisionShapes(recursive: true)
-            workbench.addChild(loaded)
-            // Apply the latest drag state even if the user has already released.
-            let translation = appModel?.catalogDragTranslation ?? .zero
-            loaded.position = snappedPosition(for: loaded, requested: catalogDragPosition(translation))
-            sources.append(loaded)
-            if isFullScale { addImageBasedLightReceiver(to: loaded) }
-            catalogDragEntity = loaded
-            if let appModel { refreshPreview(model: appModel) }
-        }
-    }
-
-    private func catalogDragPosition(_ translation: CGSize) -> SIMD3<Float> {
-        var requested = catalogDragOrigin
-        // Standard DragGesture has reliable onEnded semantics for a system pinch
-        // release. Map its view-space translation into the tabletop coordinate system.
-        requested += SIMD3(Float(translation.width), -Float(translation.height), 0) * 0.0011
-        return requested
     }
 
     private func loadAsset(_ kind: String, desiredSize: Float) async -> Entity? {
@@ -292,6 +284,17 @@ final class FusionController {
         var snapped = requested
         snapped.y = workSurfaceHeight - bottomOffset
         return snapped
+    }
+
+    private func paletteKind(for entity: Entity) -> String? {
+        var candidate: Entity? = entity
+        while let current = candidate {
+            if current.name.hasPrefix("CatalogHit-") {
+                return String(current.name.dropFirst("CatalogHit-".count))
+            }
+            candidate = current.parent
+        }
+        return nil
     }
 
     private func sourceRoot(for entity: Entity) -> Entity? {

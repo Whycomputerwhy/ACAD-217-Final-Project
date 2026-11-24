@@ -38,11 +38,6 @@ final class AppModel {
     var makeWhiteToken = 0
     var addAssetToken = 0
     var assetToAdd = "apple"
-    var catalogDragToken = 0
-    var catalogDragAsset: String?
-    var catalogDragIndex = 0
-    var catalogDragTranslation = CGSize.zero
-    var isCatalogDragging = false
     var fullScaleView = false
     var selectedHDRI: HDRI = .morning
     var inspectionEnabled = false
@@ -53,21 +48,5 @@ final class AppModel {
         addAssetToken += 1
     }
 
-    func beginCatalogDrag(_ asset: String, index: Int) {
-        guard !isCatalogDragging || catalogDragAsset != asset else { return }
-        catalogDragAsset = asset
-        catalogDragIndex = index
-        catalogDragTranslation = .zero
-        isCatalogDragging = true
-        catalogDragToken += 1
-    }
-
-    func updateCatalogDrag(translation: CGSize) {
-        catalogDragTranslation = translation
-    }
-
-    func endCatalogDrag() {
-        isCatalogDragging = false
-    }
 }
 
