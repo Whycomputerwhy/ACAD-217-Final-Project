@@ -41,8 +41,7 @@ final class AppModel {
     var catalogDragToken = 0
     var catalogDragAsset: String?
     var catalogDragIndex = 0
-    var catalogDragLocation = SIMD3<Float>.zero
-    var catalogDragStartLocation = SIMD3<Float>.zero
+    var catalogDragTranslation = CGSize.zero
     var isCatalogDragging = false
     var fullScaleView = false
     var selectedHDRI: HDRI = .morning
@@ -54,18 +53,17 @@ final class AppModel {
         addAssetToken += 1
     }
 
-    func beginCatalogDrag(_ asset: String, index: Int, location: SIMD3<Float>) {
+    func beginCatalogDrag(_ asset: String, index: Int) {
         guard !isCatalogDragging || catalogDragAsset != asset else { return }
         catalogDragAsset = asset
         catalogDragIndex = index
-        catalogDragStartLocation = location
-        catalogDragLocation = location
+        catalogDragTranslation = .zero
         isCatalogDragging = true
         catalogDragToken += 1
     }
 
-    func updateCatalogDrag(location: SIMD3<Float>) {
-        catalogDragLocation = location
+    func updateCatalogDrag(translation: CGSize) {
+        catalogDragTranslation = translation
     }
 
     func endCatalogDrag() {
