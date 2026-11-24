@@ -53,7 +53,7 @@ private struct ObjectPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OBJECTS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(model.selectedAsset == nil ? "Look at a model and pinch to select" : "Pinch the grid to place the selected model")
+            Text(instruction)
                 .font(.caption2).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                 ForEach(Self.assets, id: \.0) { item in
@@ -83,6 +83,11 @@ private struct ObjectPalette: View {
             }
         }
         .padding(14).frame(width: 220).glassBackgroundEffect()
+    }
+
+    private var instruction: String {
+        guard model.selectedAsset != nil else { return "Look at a model and pinch to select" }
+        return model.isPlacementArmed ? "Pinch the grid to place the selected model" : "Preparing selected model…"
     }
 }
 

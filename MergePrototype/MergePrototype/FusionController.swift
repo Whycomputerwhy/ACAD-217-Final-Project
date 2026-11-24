@@ -92,7 +92,7 @@ final class FusionController {
         if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
         if model.selectedAssetToken != lastSelectedAssetToken {
             lastSelectedAssetToken = model.selectedAssetToken
-            if let asset = model.selectedAsset { prefetchAsset(asset) }
+            if let asset = model.selectedAsset { prefetchAsset(asset, model: model) }
         }
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
@@ -240,9 +240,16 @@ final class FusionController {
         return loaded.clone(recursive: true)
     }
 
-    private func prefetchAsset(_ kind: String) {
-        guard assetTemplates[kind] == nil else { return }
-        Task { _ = await loadAsset(kind, desiredSize: 0.28) }
+    private func prefetchAsset(_ kind: String, model: AppModel) {
+        if assetTemplates[kind] != nil {
+            model.isPlacementArmed = true
+            return
+        }
+        Task {
+            let didLoad = await loadAsset(kind, desiredSize: 0.28) != nil
+            guard model.selectedAsset == kind else { return }
+            model.isPlacementArmed = didLoad
+        }
     }
 
     /// Snap only while the visual bottom is within 5 cm of the grid; otherwise allow a free-air move.
@@ -257,9 +264,12 @@ final class FusionController {
     }
 
     func placeSelectedAsset(at value: EntityTargetValue<SpatialTapGesture.Value>, model: AppModel) {
-        guard let asset = model.selectedAsset, isWorkbenchSurface(value.entity) else { return }
+        guard model.isPlacementArmed,
+              let asset = model.selectedAsset,
+              isWorkbenchSurface(value.entity) else { return }
         let position = value.convert(value.location3D, from: .local, to: workbench)
         model.selectedAsset = nil
+        model.isPlacementArmed = false
         addAsset(asset, at: position)
     }
 
