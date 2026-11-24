@@ -37,6 +37,7 @@ final class FusionController {
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
+    private var lastSelectedAssetToken = 0
     private var objectPaletteAttached = false
     private var editPaletteAttached = false
     private var configured = false
@@ -63,7 +64,6 @@ final class FusionController {
         makeWorkbench()
         content.add(root)
         reset(model: model)
-        Task { await preloadAssets() }
         startPlaneDetection()
     }
 
@@ -90,6 +90,10 @@ final class FusionController {
         if model.undoToken != lastUndoToken { lastUndoToken = model.undoToken; removeLastSource(model: model) }
         if model.makeWhiteToken != lastMakeWhiteToken { lastMakeWhiteToken = model.makeWhiteToken; applyWhiteMaterial() }
         if model.addAssetToken != lastAddAssetToken { lastAddAssetToken = model.addAssetToken; addAsset(model.assetToAdd, at: nextPosition()) }
+        if model.selectedAssetToken != lastSelectedAssetToken {
+            lastSelectedAssetToken = model.selectedAssetToken
+            if let asset = model.selectedAsset { prefetchAsset(asset) }
+        }
         if model.addAppleToken != lastAppleToken { lastAppleToken = model.addAppleToken; addAsset("apple", at: nextPosition()) }
         if model.addElephantToken != lastElephantToken { lastElephantToken = model.addElephantToken; addAsset("elephant", at: nextPosition()) }
         if model.addCrateToken != lastCrateToken { lastCrateToken = model.addCrateToken; addAsset("crate", at: nextPosition()) }
@@ -166,6 +170,7 @@ final class FusionController {
         lastClearToken = model.clearToken
         lastMakeWhiteToken = model.makeWhiteToken
         lastAddAssetToken = model.addAssetToken
+        lastSelectedAssetToken = model.selectedAssetToken
         model.phase = .ready
     }
 
@@ -207,6 +212,7 @@ final class FusionController {
             guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { return }
             loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
+            loaded.components.set(CollisionComponent(shapes: [.generateBox(size: [0.30, 0.30, 0.30])]))
             workbench.addChild(loaded)
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
             sources.append(loaded)
@@ -230,15 +236,13 @@ final class FusionController {
         let bounds = loaded.visualBounds(relativeTo: nil)
         let extent = max(bounds.extents.x, max(bounds.extents.y, bounds.extents.z))
         loaded.scale = SIMD3(repeating: max(0.001, desiredSize / extent))
-        loaded.generateCollisionShapes(recursive: true)
         assetTemplates[kind] = loaded
         return loaded.clone(recursive: true)
     }
 
-    private func preloadAssets() async {
-        for kind in Self.availableAssets {
-            _ = await loadAsset(kind, desiredSize: 0.28)
-        }
+    private func prefetchAsset(_ kind: String) {
+        guard assetTemplates[kind] == nil else { return }
+        Task { _ = await loadAsset(kind, desiredSize: 0.28) }
     }
 
     /// Snap only while the visual bottom is within 5 cm of the grid; otherwise allow a free-air move.

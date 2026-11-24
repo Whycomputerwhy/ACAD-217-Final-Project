@@ -60,7 +60,7 @@ private struct ObjectPalette: View {
                     let asset = item.0
                     let title = item.1
                     Button {
-                        model.selectedAsset = asset
+                        model.selectAsset(asset)
                     } label: {
                         VStack(spacing: 2) {
                             Model3D(named: asset, bundle: .main) { model in
