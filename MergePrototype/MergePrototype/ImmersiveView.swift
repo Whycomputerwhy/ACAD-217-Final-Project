@@ -69,11 +69,17 @@ private struct ObjectPalette: View {
                     .gesture(
                         SpatialEventGesture()
                             .onChanged { events in
-                                for event in events where event.phase == .active {
-                                    let point = event.location3D
-                                    let location = SIMD3(Float(point.x), Float(point.y), Float(point.z))
-                                    model.beginCatalogDrag(asset, index: index, location: location)
-                                    model.updateCatalogDrag(location: location)
+                                for event in events {
+                                    if event.phase == .active {
+                                        let point = event.location3D
+                                        let location = SIMD3(Float(point.x), Float(point.y), Float(point.z))
+                                        model.beginCatalogDrag(asset, index: index, location: location)
+                                        model.updateCatalogDrag(location: location)
+                                    } else {
+                                        // A single pinch has ended even if SwiftUI keeps
+                                        // the enclosing gesture sequence alive briefly.
+                                        model.endCatalogDrag()
+                                    }
                                 }
                             }
                             .onEnded { _ in model.endCatalogDrag() }

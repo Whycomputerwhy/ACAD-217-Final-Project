@@ -212,7 +212,7 @@ final class FusionController {
             loaded.position = position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
-            loaded.components.set(HoverEffectComponent())
+            loaded.components.set(subtleHoverEffect())
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
             loaded.position = snappedPosition(for: loaded, requested: loaded.position)
@@ -256,7 +256,7 @@ final class FusionController {
             guard let loaded = await loadAsset(asset, desiredSize: 0.28), catalogDragGeneration == generation else { return }
             loaded.name = "FusionSource-\(asset)-\(sources.count)"
             loaded.components.set(InputTargetComponent())
-            loaded.components.set(HoverEffectComponent())
+            loaded.components.set(subtleHoverEffect())
             loaded.generateCollisionShapes(recursive: true)
             workbench.addChild(loaded)
             // Apply the latest drag state even if the user has already released.
@@ -408,6 +408,12 @@ final class FusionController {
     private func addImageBasedLightReceiver(to entity: Entity) {
         entity.components.set(ImageBasedLightReceiverComponent(imageBasedLight: fullScaleRoot))
         entity.children.forEach { addImageBasedLightReceiver(to: $0) }
+    }
+
+    private func subtleHoverEffect() -> HoverEffectComponent {
+        var style = HoverEffectComponent.HighlightHoverEffectStyle.default
+        style.strength = 0.35
+        return HoverEffectComponent(.highlight(style))
     }
 
     private func startPlaneDetection() {
