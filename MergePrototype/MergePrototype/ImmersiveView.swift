@@ -9,15 +9,12 @@ struct ImmersiveView: View {
     var body: some View {
         RealityView { content, attachments in
             fusion.configure(content: content, model: model)
-            fusion.attachObjectPalette(attachments.entity(for: "objectPalette"))
             fusion.attachEditPalette(attachments.entity(for: "editPalette"))
         } update: { _, attachments in
             fusion.consumeCommands(model: model)
-            fusion.attachObjectPalette(attachments.entity(for: "objectPalette"))
             fusion.attachEditPalette(attachments.entity(for: "editPalette"))
         }
         attachments: {
-            Attachment(id: "objectPalette") { ObjectPalette() }
             Attachment(id: "editPalette") { EditPalette(model: model) }
         }
         .gesture(

@@ -23,6 +23,8 @@ final class FusionController {
     private var sources: [Entity] = []
     private var assetTemplates: [String: Entity] = [:]
     private var pendingPaletteSpawns: Set<String> = []
+    private var paletteSpawned: [String: Entity] = [:]
+    private var palettePositions: [String: SIMD3<Float>] = [:]
     private var activeDrag: DragState?
     private var activePlaneID: UUID?
     private var hasLockedWorkbenchPlacement = false
@@ -38,8 +40,6 @@ final class FusionController {
     private var lastClearToken = 0
     private var lastMakeWhiteToken = 0
     private var lastAddAssetToken = 0
-    private var objectPaletteAttached = false
-    private var catalogHitTargetsAdded = false
     private var editPaletteAttached = false
     private var configured = false
     private var appModel: AppModel?
@@ -66,15 +66,6 @@ final class FusionController {
         content.add(root)
         reset(model: model)
         startPlaneDetection()
-    }
-
-    func attachObjectPalette(_ attachment: Entity?) {
-        guard let attachment, !objectPaletteAttached else { return }
-        objectPaletteAttached = true
-        attachment.position = [-0.32, 0.15, 0.02]
-        attachment.scale = SIMD3(repeating: 0.42)
-        paletteRoot.addChild(attachment)
-        makeCatalogHitTargets(for: attachment)
     }
 
     func attachEditPalette(_ attachment: Entity?) {
@@ -117,11 +108,12 @@ final class FusionController {
     func drag(_ value: EntityTargetValue<DragGesture.Value>) {
         let position = value.convert(value.location3D, from: .local, to: workbench)
         if let kind = paletteKind(for: value.entity) {
-            if !pendingPaletteSpawns.contains(kind) {
+            palettePositions[kind] = position
+            if let source = paletteSpawned[kind] {
+                source.position = snappedPosition(for: source, requested: position)
+            } else if !pendingPaletteSpawns.contains(kind) {
                 pendingPaletteSpawns.insert(kind)
-                let handPoint = value.gestureValue.inputDevicePose3D?.position ?? value.location3D
-                let handPosition = value.convert(handPoint, from: .local, to: workbench)
-                addAsset(kind, at: handPosition, deferInteraction: true, paletteKind: kind)
+                addAsset(kind, at: position, paletteKind: kind)
             }
         } else if let source = sourceRoot(for: value.entity) {
             if activeDrag?.entity !== source {
@@ -135,6 +127,7 @@ final class FusionController {
     }
 
     func finishDrag(_ value: EntityTargetValue<DragGesture.Value>, model: AppModel) {
+        if let kind = paletteKind(for: value.entity) { paletteSpawned[kind] = nil }
         activeDrag = nil
         refreshPreview(model: model)
     }
@@ -163,23 +156,17 @@ final class FusionController {
             horizontal.components.set(OpacityComponent(opacity: index % 5 == 0 ? 0.78 : 0.46))
             workbench.addChild(horizontal)
         }
+        Self.availableAssets.enumerated().forEach { index, kind in Task { await makePaletteTile(kind: kind, index: index) } }
     }
 
-    private func makeCatalogHitTargets(for attachment: Entity) {
-        guard !catalogHitTargetsAdded else { return }
-        catalogHitTargetsAdded = true
-        let bounds = attachment.visualBounds(relativeTo: paletteRoot)
-        let header = bounds.extents.y * 0.20
-        let cellWidth = bounds.extents.x / 2
-        let cellHeight = max(0.001, bounds.extents.y - header) / 5
-        for (index, kind) in Self.availableAssets.enumerated() {
-            let target = Entity()
-            target.name = "CatalogHit-\(kind)"
-            target.position = [bounds.min.x + cellWidth * (Float(index % 2) + 0.5), bounds.max.y - header - cellHeight * (Float(index / 2) + 0.5), bounds.max.z + 0.025]
-            target.components.set(CollisionComponent(shapes: [.generateBox(size: [cellWidth * 1.04, cellHeight * 1.02, 0.05])]))
-            target.components.set(InputTargetComponent())
-            paletteRoot.addChild(target)
-        }
+    private func makePaletteTile(kind: String, index: Int) async {
+        guard let tile = await loadAsset(kind, desiredSize: 0.095) else { return }
+        tile.name = "PaletteTile-\(kind)"
+        tile.position = [-0.38 - Float(index % 2) * 0.13, 0.08, 0.20 - Float(index / 2) * 0.10]
+        tile.components.set(InputTargetComponent())
+        tile.components.set(subtleHoverEffect())
+        tile.generateCollisionShapes(recursive: true)
+        paletteRoot.addChild(tile)
     }
 
     private func reset(model: AppModel) {
@@ -198,6 +185,7 @@ final class FusionController {
     private func clearSources(model: AppModel) {
         sources.forEach { $0.removeFromParent() }
         sources.removeAll()
+        paletteSpawned.removeAll(); palettePositions.removeAll(); pendingPaletteSpawns.removeAll()
         activeDrag = nil
         previewRoot.children.forEach { $0.removeFromParent() }
         model.fusionCount = 0
@@ -228,10 +216,10 @@ final class FusionController {
         SIMD3(-0.20 + Float(sources.count % 3) * 0.16, 0.12, -0.12 + Float(sources.count % 2) * 0.18)
     }
 
-    private func addAsset(_ kind: String, at position: SIMD3<Float>, deferInteraction: Bool = false, paletteKind: String? = nil) {
+    private func addAsset(_ kind: String, at position: SIMD3<Float>, paletteKind: String? = nil) {
         Task {
-            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { pendingPaletteSpawns.remove(paletteKind ?? ""); return }
-            loaded.position = position
+            guard let loaded = await loadAsset(kind, desiredSize: 0.28) else { if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }; return }
+            loaded.position = paletteKind.flatMap { palettePositions[$0] } ?? position
             loaded.name = "FusionSource-\(kind)-\(sources.count)"
             loaded.components.set(CollisionComponent(shapes: [.generateBox(size: [0.30, 0.30, 0.30])]))
             workbench.addChild(loaded)
@@ -239,14 +227,8 @@ final class FusionController {
             sources.append(loaded)
             fullScaleNeedsRebuild = true
             if isFullScale { addImageBasedLightReceiver(to: loaded) }
-            if deferInteraction {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(450))
-                    guard loaded.parent != nil else { return }
-                    enableManipulation(on: loaded)
-                }
-            } else { enableManipulation(on: loaded) }
-            if let paletteKind { pendingPaletteSpawns.remove(paletteKind) }
+            enableManipulation(on: loaded)
+            if let paletteKind { pendingPaletteSpawns.remove(paletteKind); paletteSpawned[paletteKind] = loaded }
             if let appModel { refreshPreview(model: appModel) }
         }
     }
@@ -259,7 +241,7 @@ final class FusionController {
     private func paletteKind(for entity: Entity) -> String? {
         var candidate: Entity? = entity
         while let current = candidate {
-            if current.name.hasPrefix("CatalogHit-") { return String(current.name.dropFirst("CatalogHit-".count)) }
+            if current.name.hasPrefix("PaletteTile-") { return String(current.name.dropFirst("PaletteTile-".count)) }
             candidate = current.parent
         }
         return nil
