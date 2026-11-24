@@ -17,7 +17,7 @@ final class FusionController {
     private let fullScaleSky = ModelEntity()
     private let fullScaleGround = ModelEntity(
         mesh: .generatePlane(width: 14, depth: 14),
-        materials: [SimpleMaterial(color: .init(white: 0.26, alpha: 1), isMetallic: false)]
+        materials: [UnlitMaterial(color: .init(white: 0.38, alpha: 1))]
     )
     private let session = ARKitSession()
     private let planeProvider = PlaneDetectionProvider(alignments: [.horizontal])
@@ -329,6 +329,7 @@ final class FusionController {
             clone.position = source.position(relativeTo: workbench) * fullScaleFactor
             clone.orientation = source.orientation(relativeTo: workbench)
             clone.scale = clone.scale * SIMD3(repeating: fullScaleFactor)
+            addImageBasedLightReceiver(to: clone)
             fullScaleComposition.addChild(clone)
         }
 
@@ -352,6 +353,7 @@ final class FusionController {
                 fullScaleRoot.components.set(
                     ImageBasedLightComponent(source: .single(environment), intensityExponent: 1.0)
                 )
+                addImageBasedLightReceiver(to: fullScaleComposition)
             }
 
             guard let url = Bundle.main.url(
@@ -375,6 +377,11 @@ final class FusionController {
                 materials: [skyMaterial]
             )
         }
+    }
+
+    private func addImageBasedLightReceiver(to entity: Entity) {
+        entity.components.set(ImageBasedLightReceiverComponent(imageBasedLight: fullScaleRoot))
+        entity.children.forEach { addImageBasedLightReceiver(to: $0) }
     }
 
     private func startPlaneDetection() {

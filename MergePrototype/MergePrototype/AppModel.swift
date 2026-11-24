@@ -11,7 +11,13 @@ final class AppModel {
         case night = "Night"
         case grass = "Grass"
         var id: String { rawValue }
-        var resourceName: String { rawValue + "Sky" }
+        var resourceName: String {
+            switch self {
+            case .morning: "MorningSky"
+            case .night: "NightSky"
+            case .grass: "NoonGrass"
+            }
+        }
     }
 
     enum Phase: String {
