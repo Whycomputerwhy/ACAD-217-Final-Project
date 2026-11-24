@@ -413,10 +413,14 @@ final class FusionController {
                     // A classified table is substantially more reliable than a floor
                     // for a 0.5 m editing surface. Keep the fallback centered in front
                     // of the viewer until one is confirmed, then lock it in place.
-                    var transform = Transform(matrix: update.anchor.originFromAnchorTransform)
-                    let comfortableInset = simd_act(transform.rotation, SIMD3<Float>(0, 0.002, -0.10))
-                    transform.translation += comfortableInset
-                    workbench.transform = transform
+                    let anchorTransform = Transform(matrix: update.anchor.originFromAnchorTransform)
+                    // Plane-anchor axes are arbitrary around the vertical normal. Use
+                    // only its location, so menus retain their upright world orientation.
+                    workbench.transform = Transform(
+                        scale: .one,
+                        rotation: .init(),
+                        translation: anchorTransform.translation + SIMD3<Float>(0, 0.002, -0.10)
+                    )
                     activePlaneID = update.anchor.id
                     hasLockedWorkbenchPlacement = true
                 }
